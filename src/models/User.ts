@@ -11,6 +11,9 @@ export interface IUser extends Document {
   brandLogo?: string;
   mpAccessToken?: string;
   mpPublicKey?: string;
+  plan: 'free' | 'pro';
+  planExpiresAt?: Date;
+  mpSubscriptionId?: string;
   createdAt: Date;
 }
 
@@ -26,6 +29,9 @@ const UserSchema = new Schema<IUser>(
     brandLogo: { type: String },
     mpAccessToken: { type: String },
     mpPublicKey: { type: String },
+    plan: { type: String, enum: ['free', 'pro'], default: 'free' },
+    planExpiresAt: { type: Date },
+    mpSubscriptionId: { type: String },
   },
   { timestamps: true }
 );

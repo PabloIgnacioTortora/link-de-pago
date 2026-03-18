@@ -4,6 +4,7 @@ import connectDB from '@/lib/db/mongoose';
 import PaymentLink from '@/models/PaymentLink';
 import { generateSlug } from '@/lib/utils/generateSlug';
 import { z } from 'zod';
+import { PLAN_LIMITS } from '@/lib/plans';
 
 const createSchema = z.object({
   title: z.string().min(1).max(100),
@@ -43,6 +44,19 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   await connectDB();
+
+  // Verificar límite de plan
+  const plan = (token.plan as 'free' | 'pro') ?? 'free';
+  const maxLinks = PLAN_LIMITS[plan].maxActiveLinks;
+  if (maxLinks !== Infinity) {
+    const activeCount = await PaymentLink.countDocuments({ merchantId: token.id, isActive: true });
+    if (activeCount >= maxLinks) {
+      return NextResponse.json(
+        { error: `Tu plan Free permite hasta ${maxLinks} links activos. Actualizá a Pro para crear más.` },
+        { status: 403 }
+      );
+    }
+  }
 
   const slug = generateSlug(parsed.data.title);
 

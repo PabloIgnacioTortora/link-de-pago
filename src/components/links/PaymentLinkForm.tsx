@@ -79,7 +79,7 @@ export default function PaymentLinkForm({ initialData, mode }: Props) {
         <textarea
           rows={3}
           placeholder="Detalle opcional del cobro..."
-          className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           {...register('description')}
         />
       </div>
@@ -100,7 +100,7 @@ export default function PaymentLinkForm({ initialData, mode }: Props) {
         <div className="w-28">
           <label className="text-sm font-medium text-gray-700 block mb-1">Moneda</label>
           <select
-            className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             {...register('currency')}
           >
             <option value="ARS">ARS</option>

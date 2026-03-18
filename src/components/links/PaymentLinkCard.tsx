@@ -22,9 +22,10 @@ interface PaymentLinkCardProps {
     expiresAt?: string;
   };
   onDelete: (id: string) => void;
+  isPro?: boolean;
 }
 
-export default function PaymentLinkCard({ link, onDelete }: PaymentLinkCardProps) {
+export default function PaymentLinkCard({ link, onDelete, isPro = false }: PaymentLinkCardProps) {
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const url = `${window.location.origin}/pay/${link.slug}`;
@@ -80,8 +81,9 @@ export default function PaymentLinkCard({ link, onDelete }: PaymentLinkCardProps
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => setShowQR(true)}
-          title="Ver QR"
+          onClick={() => isPro ? setShowQR(true) : null}
+          title={isPro ? 'Ver QR' : 'QR disponible en plan Pro'}
+          className={!isPro ? 'opacity-40 cursor-not-allowed' : ''}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

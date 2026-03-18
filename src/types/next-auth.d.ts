@@ -6,6 +6,7 @@ declare module 'next-auth' {
       id: string;
       businessName?: string;
       brandColor?: string;
+      plan?: 'free' | 'pro';
     } & DefaultSession['user'];
   }
 
@@ -13,6 +14,7 @@ declare module 'next-auth' {
     id: string;
     businessName?: string;
     brandColor?: string;
+    plan?: 'free' | 'pro';
   }
 }
 
@@ -21,5 +23,6 @@ declare module 'next-auth/jwt' {
     id: string;
     businessName?: string;
     brandColor?: string;
+    plan?: 'free' | 'pro';
   }
 }

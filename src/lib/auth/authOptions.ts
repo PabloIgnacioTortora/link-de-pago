@@ -41,6 +41,7 @@ export const authOptions: NextAuthConfig = {
           image: user.image,
           businessName: user.businessName,
           brandColor: user.brandColor,
+          plan: user.plan ?? 'free',
         };
       },
     }),
@@ -68,6 +69,7 @@ export const authOptions: NextAuthConfig = {
         token.id = user.id;
         token.businessName = user.businessName;
         token.brandColor = user.brandColor;
+        token.plan = user.plan ?? 'free';
       }
       return token;
     },
@@ -76,6 +78,7 @@ export const authOptions: NextAuthConfig = {
       session.user.id = token.id;
       session.user.businessName = token.businessName;
       session.user.brandColor = token.brandColor;
+      session.user.plan = token.plan ?? 'free';
       return session;
     },
   },

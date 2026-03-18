@@ -2,6 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Header from '@/components/dashboard/Header';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
@@ -53,32 +54,42 @@ export default function SettingsPage() {
     );
   }
 
+  const isPro = session?.user?.plan === 'pro';
+
   return (
     <div className="flex-1 overflow-auto">
       <Header title="Configuración" />
-      <main className="p-6 max-w-lg">
+      <main className="p-6 max-w-lg space-y-4">
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
           <h2 className="font-semibold text-gray-800">Perfil del negocio</h2>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Nombre del negocio</label>
+          <div className={`flex flex-col gap-1 ${!isPro ? 'opacity-50 pointer-events-none' : ''}`}>
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              Nombre del negocio
+              {!isPro && <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium">Pro</span>}
+            </label>
             <input
               type="text"
               value={form.businessName}
               onChange={(e) => setForm((f) => ({ ...f, businessName: e.target.value }))}
               placeholder="Ej: Clínica Dental Rodríguez"
-              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={!isPro}
+              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50"
             />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700">Color de marca</label>
+          <div className={`flex flex-col gap-1 ${!isPro ? 'opacity-50 pointer-events-none' : ''}`}>
+            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              Color de marca
+              {!isPro && <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-medium">Pro</span>}
+            </label>
             <div className="flex items-center gap-3">
               <input
                 type="color"
                 value={form.brandColor}
                 onChange={(e) => setForm((f) => ({ ...f, brandColor: e.target.value }))}
-                className="h-10 w-16 rounded border border-gray-300 cursor-pointer"
+                disabled={!isPro}
+                className="h-10 w-16 rounded border border-gray-300 cursor-pointer disabled:cursor-not-allowed"
               />
               <span className="text-sm text-gray-500">{form.brandColor}</span>
               <div
@@ -87,6 +98,13 @@ export default function SettingsPage() {
               />
             </div>
           </div>
+
+          {!isPro && (
+            <div className="bg-indigo-50 border border-indigo-100 rounded-lg px-4 py-3 text-sm text-indigo-700">
+              Las opciones de marca propia requieren el plan Pro.{' '}
+              <Link href="/pricing" className="font-semibold underline">Actualizá acá</Link>
+            </div>
+          )}
 
           <div className="border-t border-gray-100 pt-4">
             <h3 className="font-medium text-gray-700 mb-3">MercadoPago (opcional)</h3>
@@ -100,7 +118,7 @@ export default function SettingsPage() {
                 value={form.mpAccessToken}
                 onChange={(e) => setForm((f) => ({ ...f, mpAccessToken: e.target.value }))}
                 placeholder="APP_USR-..."
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>

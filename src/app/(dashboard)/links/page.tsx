@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import Header from '@/components/dashboard/Header';
 import PaymentLinkCard from '@/components/links/PaymentLinkCard';
 import Button from '@/components/ui/Button';
@@ -21,6 +22,8 @@ interface PaymentLink {
 }
 
 export default function LinksPage() {
+  const { data: session } = useSession();
+  const isPro = session?.user?.plan === 'pro';
   const [links, setLinks] = useState<PaymentLink[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,7 +68,7 @@ export default function LinksPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {links.map((link) => (
-              <PaymentLinkCard key={link._id} link={link} onDelete={handleDelete} />
+              <PaymentLinkCard key={link._id} link={link} onDelete={handleDelete} isPro={isPro} />
             ))}
           </div>
         )}

@@ -18,14 +18,17 @@ export default async function PayPage({ params, searchParams }: {
   const link = await PaymentLink.findOne({ slug }).lean();
   if (!link) notFound();
 
-  const merchant = await User.findById(link.merchantId).select('name businessName brandColor').lean();
+  const merchant = await User.findById(link.merchantId).select('name businessName brandColor plan').lean();
 
   const isExpired = link.expiresAt && new Date() > new Date(link.expiresAt);
   const isMaxed = link.maxPayments && link.paymentCount >= link.maxPayments;
   const isUnavailable = !link.isActive || isExpired || isMaxed;
 
-  const brandColor = merchant?.brandColor ?? '#6366f1';
-  const merchantName = merchant?.businessName ?? merchant?.name ?? 'Comerciante';
+  const isPro = merchant?.plan === 'pro';
+  const brandColor = isPro ? (merchant?.brandColor ?? '#6366f1') : '#6366f1';
+  const merchantName = isPro
+    ? (merchant?.businessName ?? merchant?.name ?? 'Comerciante')
+    : 'LinkPago';
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">

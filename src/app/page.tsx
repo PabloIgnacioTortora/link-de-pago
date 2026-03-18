@@ -43,6 +43,76 @@ export default function Home() {
           ))}
         </div>
       </main>
+
+      {/* Pricing */}
+      <section className="bg-gray-50 py-24 px-6" id="precios">
+        <div className="max-w-4xl mx-auto text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 mb-3">Precios simples</h2>
+          <p className="text-gray-500">Empezá gratis. Pasá a Pro cuando necesites más.</p>
+        </div>
+
+        <div className="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Free */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-8">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Free</h3>
+            <p className="text-4xl font-bold text-gray-900 mb-1">$0</p>
+            <p className="text-sm text-gray-400 mb-6">Para siempre</p>
+            <ul className="space-y-3 text-sm text-gray-600 mb-8">
+              {[
+                '2 links de cobro activos',
+                'Pagos con MercadoPago',
+                'Dashboard básico',
+                'Acceso desde cualquier dispositivo',
+              ].map((f) => (
+                <li key={f} className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <Link href="/register" className="block w-full text-center py-3 rounded-xl border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors">
+              Empezar gratis
+            </Link>
+          </div>
+
+          {/* Pro */}
+          <div className="bg-indigo-600 rounded-2xl p-8 relative overflow-hidden">
+            <div className="absolute top-4 right-4 bg-white/20 text-white text-xs font-semibold px-2 py-1 rounded-full">
+              Recomendado
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-1">Pro</h3>
+            <p className="text-4xl font-bold text-white mb-1">$15.000</p>
+            <p className="text-sm text-indigo-200 mb-6">por mes · en ARS</p>
+            <ul className="space-y-3 text-sm text-indigo-100 mb-8">
+              {[
+                'Links ilimitados',
+                'Marca propia (logo, color, nombre)',
+                'Código QR por link',
+                'Estadísticas completas',
+                'Notificaciones por email',
+                'Soporte prioritario',
+              ].map((f) => (
+                <li key={f} className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <Link href="/register" className="block w-full text-center py-3 rounded-xl bg-white text-indigo-700 font-semibold hover:bg-indigo-50 transition-colors">
+              Empezar con Pro
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-100 py-8 text-center text-sm text-gray-400">
+        <p>© {new Date().getFullYear()} LinkPago · Hecho en Argentina 🇦🇷</p>
+      </footer>
     </div>
   );
 }

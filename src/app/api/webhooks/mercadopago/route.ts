@@ -7,8 +7,41 @@ import { getPayment } from '@/lib/mercadopago/client';
 import { sendPaymentConfirmationEmail } from '@/lib/email/mailer';
 import { verifyMercadoPagoSignature } from '@/lib/mercadopago/verifyWebhook';
 
+async function handleSubscription(dataId: string) {
+  const client = new (await import('mercadopago')).MercadoPagoConfig({
+    accessToken: process.env.MP_ACCESS_TOKEN!,
+  });
+  const { PreApproval } = await import('mercadopago');
+  const preapproval = new PreApproval(client);
+  const sub = await preapproval.get({ id: dataId });
+
+  await connectDB();
+
+  if (sub.status === 'authorized') {
+    await User.findOneAndUpdate(
+      { email: sub.payer_email },
+      { $set: { plan: 'pro', mpSubscriptionId: dataId, planExpiresAt: null } }
+    );
+  } else if (sub.status === 'cancelled' || sub.status === 'paused') {
+    await User.findOneAndUpdate(
+      { mpSubscriptionId: dataId },
+      { $set: { plan: 'free', mpSubscriptionId: undefined, planExpiresAt: undefined } }
+    );
+  }
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
+
+  // Manejar eventos de suscripción
+  if (body.type === 'subscription_preapproval' && body.data?.id) {
+    try {
+      await handleSubscription(String(body.data.id));
+    } catch (err) {
+      console.error('Subscription webhook error:', err);
+    }
+    return NextResponse.json({ received: true });
+  }
 
   // Only process payment notifications
   if (body.type !== 'payment' || !body.data?.id) {
@@ -53,7 +86,7 @@ export async function POST(req: NextRequest) {
     if (!link) return NextResponse.json({ received: true });
 
     // Fetch merchant to get their custom MP token (if any)
-    const merchant = await User.findById(link.merchantId).select('email name businessName mpAccessToken');
+    const merchant = await User.findById(link.merchantId).select('email name businessName mpAccessToken plan');
 
     // Re-fetch payment with merchant token if they have one, so we get accurate data
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -90,7 +123,7 @@ export async function POST(req: NextRequest) {
         $inc: { totalCollected: payment.transaction_amount ?? 0, paymentCount: 1 },
       });
 
-      if (merchant) {
+      if (merchant && merchant.plan === 'pro') {
         await sendPaymentConfirmationEmail({
           to: merchant.email,
           merchantName: merchant.businessName ?? merchant.name,
