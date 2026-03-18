@@ -1,8 +1,50 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'LinkPago — Cobros simples con un link',
+  alternates: { canonical: 'https://link-de-pago.vercel.app' },
+};
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'LinkPago',
+  applicationCategory: 'FinanceApplication',
+  operatingSystem: 'Web',
+  url: 'https://link-de-pago.vercel.app',
+  description:
+    'Plataforma para generar links de cobro y recibir pagos con MercadoPago. Empezá gratis.',
+  offers: [
+    {
+      '@type': 'Offer',
+      name: 'Free',
+      price: '0',
+      priceCurrency: 'ARS',
+      description: 'Hasta 2 links activos, sin costo.',
+    },
+    {
+      '@type': 'Offer',
+      name: 'Pro',
+      price: '15000',
+      priceCurrency: 'ARS',
+      description: 'Links ilimitados, branding, estadísticas y más.',
+    },
+  ],
+  provider: {
+    '@type': 'Organization',
+    name: 'LinkPago',
+    url: 'https://link-de-pago.vercel.app',
+  },
+};
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Nav */}
       <nav className="border-b border-gray-100 px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
         <span className="text-xl font-bold text-indigo-600">LinkPago</span>
