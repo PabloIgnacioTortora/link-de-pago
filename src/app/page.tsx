@@ -112,6 +112,10 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-gray-100 py-8 text-center text-sm text-gray-400">
         <p>© {new Date().getFullYear()} LinkPago · Hecho en Argentina 🇦🇷</p>
+        <div className="flex justify-center gap-4 mt-2">
+          <a href="/terms" className="hover:text-gray-600 transition-colors">Términos y Condiciones</a>
+          <a href="/privacy" className="hover:text-gray-600 transition-colors">Política de Privacidad</a>
+        </div>
       </footer>
     </div>
   );
