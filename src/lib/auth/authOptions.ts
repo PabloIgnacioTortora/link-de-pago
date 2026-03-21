@@ -20,19 +20,31 @@ export const authOptions: NextAuthConfig = {
         password: { label: 'Contraseña', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        if (!credentials?.email || !credentials?.password) {
+          console.error('[auth] Missing credentials');
+          return null;
+        }
 
         const email = credentials.email as string;
         const limited = await isRateLimited({ key: `login:${email}`, limit: 10, windowSeconds: 900 });
-        if (limited) return null;
+        if (limited) {
+          console.error('[auth] Rate limited:', email);
+          return null;
+        }
 
         await connectDB();
         const user = await User.findOne({ email: email.toLowerCase() });
 
-        if (!user || !user.password) return null;
+        if (!user || !user.password) {
+          console.error('[auth] User not found or no password:', email);
+          return null;
+        }
 
         const isValid = await bcrypt.compare(credentials.password as string, user.password);
-        if (!isValid) return null;
+        if (!isValid) {
+          console.error('[auth] Invalid password for:', email);
+          return null;
+        }
 
         return {
           id: user._id.toString(),
