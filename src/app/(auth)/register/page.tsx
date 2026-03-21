@@ -31,13 +31,19 @@ export default function RegisterPage() {
       return;
     }
 
-    await signIn('credentials', {
+    const signInRes = await signIn('credentials', {
       email: form.email,
       password: form.password,
       redirect: false,
     });
 
-    router.push('/dashboard');
+    if (signInRes?.error) {
+      setError('Cuenta creada pero no se pudo iniciar sesión. Intentá loguearte.');
+      setLoading(false);
+      return;
+    }
+
+    window.location.href = '/dashboard';
   };
 
   return (
