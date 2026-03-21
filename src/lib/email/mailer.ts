@@ -15,6 +15,28 @@ interface SendPaymentEmailParams {
   paymentId: string;
 }
 
+export async function sendPasswordResetEmail({ to, resetUrl }: { to: string; resetUrl: string }) {
+  const resend = getResend();
+  if (!resend) return;
+
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM ?? 'LinkPago <onboarding@resend.dev>',
+    to,
+    subject: 'Restablecer contraseña — LinkPago',
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <h2 style="color:#6366f1">Restablecer contraseña</h2>
+        <p>Recibimos una solicitud para restablecer tu contraseña.</p>
+        <p>Hacé clic en el siguiente botón para crear una nueva contraseña. El link expira en <strong>1 hora</strong>.</p>
+        <a href="${resetUrl}" style="display:inline-block;margin:20px 0;padding:12px 28px;background:#6366f1;color:white;border-radius:8px;text-decoration:none;font-weight:600">
+          Restablecer contraseña
+        </a>
+        <p style="color:#6b7280;font-size:14px">Si no solicitaste esto, podés ignorar este email.</p>
+      </div>
+    `,
+  });
+}
+
 export async function sendPaymentConfirmationEmail({
   to,
   merchantName,
@@ -33,7 +55,7 @@ export async function sendPaymentConfirmationEmail({
   if (!resend) return;
 
   await resend.emails.send({
-    from: 'LinkPago <notificaciones@linkpago.app>',
+    from: process.env.EMAIL_FROM ?? 'LinkPago <onboarding@resend.dev>',
     to,
     subject: `✅ Nuevo pago recibido — ${formatted}`,
     html: `

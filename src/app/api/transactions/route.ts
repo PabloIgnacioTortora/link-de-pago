@@ -4,7 +4,7 @@ import connectDB from '@/lib/db/mongoose';
 import Transaction from '@/models/Transaction';
 
 export async function GET(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
   if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   await connectDB();

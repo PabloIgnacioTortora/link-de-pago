@@ -17,7 +17,7 @@ const createSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
   if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   await connectDB();
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
   if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const body = await req.json();

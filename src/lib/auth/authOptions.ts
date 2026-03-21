@@ -42,6 +42,7 @@ export const authOptions: NextAuthConfig = {
           businessName: user.businessName,
           brandColor: user.brandColor,
           plan: user.plan ?? 'free',
+          hasMpToken: !!user.mpAccessToken,
         };
       },
     }),
@@ -64,12 +65,23 @@ export const authOptions: NextAuthConfig = {
       return true;
     },
 
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
         token.businessName = user.businessName;
         token.brandColor = user.brandColor;
         token.plan = user.plan ?? 'free';
+        token.hasMpToken = user.hasMpToken ?? false;
+      }
+      if (trigger === 'update' && token.id) {
+        await connectDB();
+        const fresh = await User.findById(token.id).select('mpAccessToken plan businessName brandColor').lean();
+        if (fresh) {
+          token.hasMpToken = !!fresh.mpAccessToken;
+          token.plan = fresh.plan ?? 'free';
+          token.businessName = fresh.businessName;
+          token.brandColor = fresh.brandColor;
+        }
       }
       return token;
     },
@@ -79,6 +91,7 @@ export const authOptions: NextAuthConfig = {
       session.user.businessName = token.businessName;
       session.user.brandColor = token.brandColor;
       session.user.plan = token.plan ?? 'free';
+      session.user.hasMpToken = token.hasMpToken ?? false;
       return session;
     },
   },

@@ -4,7 +4,7 @@ import connectDB from '@/lib/db/mongoose';
 import PaymentLink from '@/models/PaymentLink';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
   if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const { id } = await params;
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
   if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const { id } = await params;
@@ -37,7 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
   if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const { id } = await params;

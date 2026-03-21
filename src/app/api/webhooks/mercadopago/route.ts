@@ -6,6 +6,7 @@ import User from '@/models/User';
 import { getPayment } from '@/lib/mercadopago/client';
 import { sendPaymentConfirmationEmail } from '@/lib/email/mailer';
 import { verifyMercadoPagoSignature } from '@/lib/mercadopago/verifyWebhook';
+import { decrypt } from '@/lib/crypto';
 
 async function handleSubscription(dataId: string) {
   const client = new (await import('mercadopago')).MercadoPagoConfig({
@@ -91,7 +92,7 @@ export async function POST(req: NextRequest) {
     // Re-fetch payment with merchant token if they have one, so we get accurate data
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payment: any = merchant?.mpAccessToken
-      ? await getPayment(paymentId, merchant.mpAccessToken)
+      ? await getPayment(paymentId, decrypt(merchant.mpAccessToken))
       : paymentPlatform;
 
     const status = payment.status as 'pending' | 'approved' | 'rejected' | 'cancelled';

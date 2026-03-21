@@ -5,7 +5,7 @@ import connectDB from '@/lib/db/mongoose';
 import User from '@/models/User';
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
   if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   await connectDB();

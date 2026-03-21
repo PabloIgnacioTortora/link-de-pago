@@ -1,10 +1,39 @@
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import connectDB from '@/lib/db/mongoose';
 import PaymentLink from '@/models/PaymentLink';
 import User from '@/models/User';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
 import PayButton from '@/components/payment/PayButton';
 import ShareQR from '@/components/payment/ShareQR';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  await connectDB();
+  const link = await PaymentLink.findOne({ slug }).lean();
+  if (!link) return {};
+
+  const merchant = await User.findById(link.merchantId).select('businessName name plan').lean();
+  const merchantName = merchant?.plan === 'pro'
+    ? (merchant?.businessName ?? merchant?.name ?? 'LinkPago')
+    : 'LinkPago';
+
+  const title = `${link.title} — ${merchantName}`;
+  const description = link.description
+    ? `${link.description} · Pagá ${formatCurrency(link.amount, link.currency)} de forma segura con MercadoPago.`
+    : `Pagá ${formatCurrency(link.amount, link.currency)} de forma segura con MercadoPago.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+    },
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function PayPage({ params, searchParams }: {
   params: Promise<{ slug: string }>;
