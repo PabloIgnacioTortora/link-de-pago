@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { auth } from '@/auth';
 
 export const metadata: Metadata = {
   title: 'LinkPago — Cobros simples con un link',
@@ -38,7 +39,10 @@ const jsonLd = {
   },
 };
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth();
+  const isLoggedIn = !!session?.user;
+
   return (
     <div className="min-h-screen bg-white">
       <script
@@ -49,10 +53,18 @@ export default function Home() {
       <nav className="border-b border-gray-100 px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
         <span className="text-xl font-bold text-indigo-600">LinkPago</span>
         <div className="flex gap-3">
-          <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900 px-4 py-2">Iniciar sesión</Link>
-          <Link href="/register" className="text-sm bg-indigo-600 text-white rounded-lg px-4 py-2 hover:bg-indigo-700 transition-colors">
-            Empezar gratis
-          </Link>
+          {isLoggedIn ? (
+            <Link href="/dashboard" className="text-sm bg-indigo-600 text-white rounded-lg px-4 py-2 hover:bg-indigo-700 transition-colors">
+              Mi panel
+            </Link>
+          ) : (
+            <>
+              <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900 px-4 py-2">Iniciar sesión</Link>
+              <Link href="/register" className="text-sm bg-indigo-600 text-white rounded-lg px-4 py-2 hover:bg-indigo-700 transition-colors">
+                Empezar gratis
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
