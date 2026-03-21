@@ -17,9 +17,12 @@ interface SendPaymentEmailParams {
 
 export async function sendPasswordResetEmail({ to, resetUrl }: { to: string; resetUrl: string }) {
   const resend = getResend();
-  if (!resend) return;
+  if (!resend) {
+    console.error('[mailer] RESEND_API_KEY not set');
+    return;
+  }
 
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from: process.env.EMAIL_FROM ?? 'LinkPago <onboarding@resend.dev>',
     to,
     subject: 'Restablecer contraseña — LinkPago',
@@ -35,6 +38,7 @@ export async function sendPasswordResetEmail({ to, resetUrl }: { to: string; res
       </div>
     `,
   });
+  console.log('[mailer] Password reset email result:', JSON.stringify(result));
 }
 
 export async function sendPaymentConfirmationEmail({
