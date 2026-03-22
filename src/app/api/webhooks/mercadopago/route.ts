@@ -8,28 +8,6 @@ import { sendPaymentConfirmationEmail } from '@/lib/email/mailer';
 import { verifyMercadoPagoSignature } from '@/lib/mercadopago/verifyWebhook';
 import { decrypt } from '@/lib/crypto';
 
-async function handleSubscription(dataId: string) {
-  const client = new (await import('mercadopago')).MercadoPagoConfig({
-    accessToken: process.env.MP_ACCESS_TOKEN!,
-  });
-  const { PreApproval } = await import('mercadopago');
-  const preapproval = new PreApproval(client);
-  const sub = await preapproval.get({ id: dataId });
-
-  await connectDB();
-
-  if (sub.status === 'authorized') {
-    await User.findOneAndUpdate(
-      { email: sub.payer_email },
-      { $set: { plan: 'pro', mpSubscriptionId: dataId, planExpiresAt: null } }
-    );
-  } else if (sub.status === 'cancelled' || sub.status === 'paused') {
-    await User.findOneAndUpdate(
-      { mpSubscriptionId: dataId },
-      { $set: { plan: 'free', mpSubscriptionId: undefined, planExpiresAt: undefined } }
-    );
-  }
-}
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -47,16 +25,6 @@ export async function POST(req: NextRequest) {
     if (!valid) {
       return NextResponse.json({ error: 'Firma inválida' }, { status: 401 });
     }
-  }
-
-  // Manejar eventos de suscripción
-  if (body.type === 'subscription_preapproval' && body.data?.id) {
-    try {
-      await handleSubscription(String(body.data.id));
-    } catch (err) {
-      console.error('Subscription webhook error:', err);
-    }
-    return NextResponse.json({ received: true });
   }
 
   // Only process payment notifications
@@ -81,9 +49,24 @@ export async function POST(req: NextRequest) {
     // then re-fetch with merchant token if needed.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const paymentPlatform: any = await getPayment(paymentId);
-    const linkId = paymentPlatform.external_reference;
-    if (!linkId) return NextResponse.json({ received: true });
+    const externalRef = paymentPlatform.external_reference as string | undefined;
+    if (!externalRef) return NextResponse.json({ received: true });
 
+    // Manejar pago de plan Pro
+    if (externalRef.startsWith('sub_pro_')) {
+      if (paymentPlatform.status === 'approved') {
+        const userId = externalRef.slice('sub_pro_'.length);
+        const planExpiresAt = new Date();
+        planExpiresAt.setMonth(planExpiresAt.getMonth() + 1);
+        await User.findByIdAndUpdate(userId, {
+          $set: { plan: 'pro', planExpiresAt },
+        });
+        console.log('[webhook] Plan Pro activado para usuario:', userId);
+      }
+      return NextResponse.json({ received: true });
+    }
+
+    const linkId = externalRef;
     const link = await PaymentLink.findById(linkId);
     if (!link) return NextResponse.json({ received: true });
 
