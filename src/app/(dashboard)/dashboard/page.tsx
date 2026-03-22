@@ -8,6 +8,8 @@ import Transaction from '@/models/Transaction';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
 import Link from 'next/link';
 import mongoose from 'mongoose';
+import { Suspense } from 'react';
+import SubscriptionSuccess from '@/components/dashboard/SubscriptionSuccess';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -35,6 +37,9 @@ export default async function DashboardPage() {
   return (
     <div className="flex-1 overflow-auto">
       <Header title={`Hola, ${session.user.name?.split(' ')[0]} 👋`} />
+      <Suspense fallback={null}>
+        <SubscriptionSuccess />
+      </Suspense>
       <main className="p-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatsCard
