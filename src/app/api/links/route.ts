@@ -27,9 +27,13 @@ export async function GET(req: NextRequest) {
   const limit = 10;
   const skip = (page - 1) * limit;
 
+  const showInactive = searchParams.get('inactive') === 'true';
+  const filter: Record<string, unknown> = { merchantId: session.user.id };
+  if (!showInactive) filter.isActive = true;
+
   const [links, total] = await Promise.all([
-    PaymentLink.find({ merchantId: session.user.id }).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-    PaymentLink.countDocuments({ merchantId: session.user.id }),
+    PaymentLink.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    PaymentLink.countDocuments(filter),
   ]);
 
   return NextResponse.json({ links, total, page, pages: Math.ceil(total / limit) });
