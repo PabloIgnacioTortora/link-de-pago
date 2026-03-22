@@ -114,10 +114,10 @@ export const authOptions: NextAuthConfig = {
 
     async session({ session, token }) {
       session.user.id = token.id as string;
-      session.user.businessName = token.businessName;
-      session.user.brandColor = token.brandColor;
-      session.user.plan = token.plan ?? 'free';
-      session.user.hasMpToken = token.hasMpToken ?? false;
+      session.user.businessName = token.businessName as string | undefined;
+      session.user.brandColor = token.brandColor as string | undefined;
+      session.user.plan = ((token.plan as string | undefined) ?? 'free') as 'free' | 'pro';
+      session.user.hasMpToken = (token.hasMpToken as boolean | undefined) ?? false;
       return session;
     },
   },
