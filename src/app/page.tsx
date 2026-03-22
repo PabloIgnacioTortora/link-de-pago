@@ -78,8 +78,8 @@ export default async function Home() {
           Creá links de cobro en segundos y compartílos por WhatsApp, Instagram o email.
           Tus clientes pagan con tarjeta o transferencia — vos recibís al instante.
         </p>
-        <Link href="/register" className="inline-block bg-indigo-600 text-white text-lg font-semibold px-8 py-4 rounded-xl hover:bg-indigo-700 transition-colors">
-          Crear mi cuenta gratis
+        <Link href={isLoggedIn ? '/dashboard' : '/register'} className="inline-block bg-indigo-600 text-white text-lg font-semibold px-8 py-4 rounded-xl hover:bg-indigo-700 transition-colors">
+          {isLoggedIn ? 'Mi panel' : 'Crear mi cuenta gratis'}
         </Link>
 
         {/* Features */}

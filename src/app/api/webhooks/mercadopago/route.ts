@@ -34,6 +34,21 @@ async function handleSubscription(dataId: string) {
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
+  // Verificar firma antes de procesar cualquier evento
+  const webhookSecret = process.env.MP_WEBHOOK_SECRET;
+  const dataId = String(body.data?.id ?? '');
+  if (webhookSecret && dataId) {
+    const valid = verifyMercadoPagoSignature({
+      xSignature: req.headers.get('x-signature'),
+      xRequestId: req.headers.get('x-request-id'),
+      dataId,
+      secret: webhookSecret,
+    });
+    if (!valid) {
+      return NextResponse.json({ error: 'Firma inválida' }, { status: 401 });
+    }
+  }
+
   // Manejar eventos de suscripción
   if (body.type === 'subscription_preapproval' && body.data?.id) {
     try {
@@ -50,20 +65,6 @@ export async function POST(req: NextRequest) {
   }
 
   const paymentId = String(body.data.id);
-
-  // Verificar firma si el secret está configurado
-  const webhookSecret = process.env.MP_WEBHOOK_SECRET;
-  if (webhookSecret) {
-    const valid = verifyMercadoPagoSignature({
-      xSignature: req.headers.get('x-signature'),
-      xRequestId: req.headers.get('x-request-id'),
-      dataId: paymentId,
-      secret: webhookSecret,
-    });
-    if (!valid) {
-      return NextResponse.json({ error: 'Firma inválida' }, { status: 401 });
-    }
-  }
 
   try {
     await connectDB();

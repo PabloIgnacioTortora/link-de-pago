@@ -75,11 +75,11 @@ export default function RegisterPage() {
             id="password"
             label="Contraseña"
             type="password"
-            placeholder="Mínimo 6 caracteres"
+            placeholder="Mínimo 8 caracteres"
             value={form.password}
             onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
             required
-            minLength={6}
+            minLength={8}
           />
 
           {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}

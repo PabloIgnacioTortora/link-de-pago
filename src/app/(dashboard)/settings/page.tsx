@@ -213,7 +213,7 @@ export default function SettingsPage() {
           {!isPro && (
             <div className="bg-indigo-50 border border-indigo-100 rounded-lg px-4 py-3 text-sm text-indigo-700">
               Las opciones de marca propia requieren el plan Pro.{' '}
-              <Link href="/pricing" className="font-semibold underline">Actualizá acá</Link>
+              <Link href="/#precios" className="font-semibold underline">Actualizá acá</Link>
             </div>
           )}
 
