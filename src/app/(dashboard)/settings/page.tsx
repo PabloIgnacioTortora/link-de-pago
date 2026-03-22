@@ -232,16 +232,28 @@ export default function SettingsPage() {
               <label className="text-sm font-medium text-gray-700">
                 Tu Access Token de producción
               </label>
-              <input
-                type="password"
-                value={form.mpAccessToken}
-                onChange={(e) => setForm((f) => ({ ...f, mpAccessToken: e.target.value }))}
-                placeholder="APP_USR-0000000000000000-000000-..."
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-              />
-              {form.mpAccessToken && (
-                <p className="text-xs text-green-600 mt-1">✓ Token configurado</p>
-              )}
+              <div className="relative">
+                <input
+                  type="password"
+                  value={form.mpAccessToken}
+                  onChange={(e) => setForm((f) => ({ ...f, mpAccessToken: e.target.value }))}
+                  placeholder={hasMpToken ? 'APP_USR-••••••••••••••••••••••••' : 'APP_USR-0000000000000000-000000-...'}
+                  className={`block w-full rounded-lg border px-3 py-2 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono ${hasMpToken && !form.mpAccessToken ? 'border-green-300 bg-green-50' : 'border-gray-300'}`}
+                />
+                {hasMpToken && !form.mpAccessToken && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </span>
+                )}
+              </div>
+              {hasMpToken && !form.mpAccessToken
+                ? <p className="text-xs text-green-600 mt-1">✓ Token configurado. Dejá el campo vacío para mantener el actual.</p>
+                : form.mpAccessToken
+                  ? <p className="text-xs text-indigo-600 mt-1">Token listo para guardar.</p>
+                  : null
+              }
             </div>
           </div>
 
