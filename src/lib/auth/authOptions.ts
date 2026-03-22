@@ -77,13 +77,27 @@ export const authOptions: NextAuthConfig = {
       return true;
     },
 
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user, account, trigger }) {
       if (user) {
-        token.id = user.id;
-        token.businessName = user.businessName;
-        token.brandColor = user.brandColor;
-        token.plan = user.plan ?? 'free';
-        token.hasMpToken = user.hasMpToken ?? false;
+        if (account?.provider === 'google') {
+          await connectDB();
+          const dbUser = await User.findOne({ email: user.email })
+            .select('_id plan businessName brandColor mpAccessToken')
+            .lean();
+          if (dbUser) {
+            token.id = dbUser._id.toString();
+            token.plan = (dbUser as { plan?: string }).plan ?? 'free';
+            token.businessName = (dbUser as { businessName?: string }).businessName;
+            token.brandColor = (dbUser as { brandColor?: string }).brandColor;
+            token.hasMpToken = !!(dbUser as { mpAccessToken?: string }).mpAccessToken;
+          }
+        } else {
+          token.id = user.id;
+          token.businessName = user.businessName;
+          token.brandColor = user.brandColor;
+          token.plan = user.plan ?? 'free';
+          token.hasMpToken = user.hasMpToken ?? false;
+        }
       }
       if (trigger === 'update' && token.id) {
         await connectDB();

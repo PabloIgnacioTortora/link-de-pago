@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { auth } from '@/auth';
 import connectDB from '@/lib/db/mongoose';
 import PaymentLink from '@/models/PaymentLink';
 import { generateSlug } from '@/lib/utils/generateSlug';
@@ -17,8 +17,8 @@ const createSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
-  if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   await connectDB();
 
@@ -28,16 +28,16 @@ export async function GET(req: NextRequest) {
   const skip = (page - 1) * limit;
 
   const [links, total] = await Promise.all([
-    PaymentLink.find({ merchantId: token.id }).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-    PaymentLink.countDocuments({ merchantId: token.id }),
+    PaymentLink.find({ merchantId: session.user.id }).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    PaymentLink.countDocuments({ merchantId: session.user.id }),
   ]);
 
   return NextResponse.json({ links, total, page, pages: Math.ceil(total / limit) });
 }
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
-  if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const body = await req.json();
   const parsed = createSchema.safeParse(body);
@@ -45,11 +45,10 @@ export async function POST(req: NextRequest) {
 
   await connectDB();
 
-  // Verificar límite de plan
-  const plan = (token.plan as 'free' | 'pro') ?? 'free';
+  const plan = (session.user.plan as 'free' | 'pro') ?? 'free';
   const maxLinks = PLAN_LIMITS[plan].maxActiveLinks;
   if (maxLinks !== Infinity) {
-    const activeCount = await PaymentLink.countDocuments({ merchantId: token.id, isActive: true });
+    const activeCount = await PaymentLink.countDocuments({ merchantId: session.user.id, isActive: true });
     if (activeCount >= maxLinks) {
       return NextResponse.json(
         { error: `Tu plan Free permite hasta ${maxLinks} links activos. Actualizá a Pro para crear más.` },
@@ -62,7 +61,7 @@ export async function POST(req: NextRequest) {
 
   const link = await PaymentLink.create({
     ...parsed.data,
-    merchantId: token.id,
+    merchantId: session.user.id,
     slug,
     expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : undefined,
   });

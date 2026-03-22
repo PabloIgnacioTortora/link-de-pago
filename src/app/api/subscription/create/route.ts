@@ -1,11 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
 import { MercadoPagoConfig, PreApproval } from 'mercadopago';
 import { PRO_PRICE_ARS } from '@/lib/plans';
 
-export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
-  if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+export async function POST() {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+  const token = session.user;
 
   if (token.plan === 'pro') {
     return NextResponse.json({ error: 'Ya tenés el plan Pro activo' }, { status: 400 });

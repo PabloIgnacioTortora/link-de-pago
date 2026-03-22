@@ -7,6 +7,7 @@ import PaymentLink from '@/models/PaymentLink';
 import Transaction from '@/models/Transaction';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
 import Link from 'next/link';
+import mongoose from 'mongoose';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -23,7 +24,7 @@ export default async function DashboardPage() {
       .populate('paymentLinkId', 'title')
       .lean(),
     Transaction.aggregate([
-      { $match: { merchantId: session.user.id, status: 'approved' } },
+      { $match: { merchantId: new mongoose.Types.ObjectId(session.user.id), status: 'approved' } },
       { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } },
     ]),
   ]);

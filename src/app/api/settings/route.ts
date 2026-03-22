@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { auth } from '@/auth';
 import connectDB from '@/lib/db/mongoose';
 import User from '@/models/User';
 import { z } from 'zod';
@@ -12,8 +12,8 @@ const schema = z.object({
 });
 
 export async function PATCH(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
-  if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const body = await req.json();
   const parsed = schema.safeParse(body);
@@ -26,7 +26,7 @@ export async function PATCH(req: NextRequest) {
   if (parsed.data.brandColor) update.brandColor = parsed.data.brandColor;
   if (parsed.data.mpAccessToken) update.mpAccessToken = encrypt(parsed.data.mpAccessToken);
 
-  await User.findByIdAndUpdate(token.id, { $set: update });
+  await User.findByIdAndUpdate(session.user.id, { $set: update });
 
   return NextResponse.json({ success: true });
 }
