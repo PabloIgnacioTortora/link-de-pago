@@ -10,6 +10,7 @@ import Link from 'next/link';
 import mongoose from 'mongoose';
 import { Suspense } from 'react';
 import SubscriptionSuccess from '@/components/dashboard/SubscriptionSuccess';
+import RevenueChart from '@/components/dashboard/RevenueChart';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -17,7 +18,10 @@ export default async function DashboardPage() {
 
   await connectDB();
 
-  const [linkCount, totalLinks, recentTransactions, revenueResult] = await Promise.all([
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+
+  const [linkCount, totalLinks, recentTransactions, revenueResult, dailyRevenue] = await Promise.all([
     PaymentLink.countDocuments({ merchantId: session.user.id, isActive: true }),
     PaymentLink.countDocuments({ merchantId: session.user.id }),
     Transaction.find({ merchantId: session.user.id })
@@ -29,7 +33,32 @@ export default async function DashboardPage() {
       { $match: { merchantId: new mongoose.Types.ObjectId(session.user.id), status: 'approved' } },
       { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } },
     ]),
+    Transaction.aggregate([
+      {
+        $match: {
+          merchantId: new mongoose.Types.ObjectId(session.user.id),
+          status: 'approved',
+          createdAt: { $gte: thirtyDaysAgo },
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          total: { $sum: '$amount' },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]),
   ]);
+
+  // Rellenar días sin transacciones con 0
+  const chartData = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(thirtyDaysAgo);
+    d.setDate(d.getDate() + i);
+    const key = d.toISOString().slice(0, 10);
+    const found = (dailyRevenue as { _id: string; total: number }[]).find((r) => r._id === key);
+    return { date: key, total: found?.total ?? 0 };
+  });
 
   const revenue = revenueResult[0]?.total ?? 0;
   const approvedCount = revenueResult[0]?.count ?? 0;
@@ -90,6 +119,15 @@ export default async function DashboardPage() {
           />
         </div>
 
+        <div className="bg-white rounded-xl border border-gray-200 mb-6">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-800">Ingresos — últimos 30 días</h2>
+          </div>
+          <div className="px-5 py-4">
+            <RevenueChart data={chartData} />
+          </div>
+        </div>
+
         <div className="bg-white rounded-xl border border-gray-200">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <h2 className="font-semibold text-gray-800">Últimas transacciones</h2>
@@ -117,11 +155,11 @@ export default async function DashboardPage() {
               <tbody className="divide-y divide-gray-100">
                 {recentTransactions.map((tx) => (
                   <tr key={String(tx._id)} className="hover:bg-gray-50">
-                    <td className="px-5 py-3 text-gray-700">
+                    <td className="px-5 py-3 text-gray-900 font-medium">
                       {(tx.paymentLinkId as { title?: string })?.title ?? '—'}
                     </td>
-                    <td className="px-5 py-3 text-gray-500">{tx.payerEmail ?? '—'}</td>
-                    <td className="px-5 py-3 text-right font-medium">{formatCurrency(tx.amount, tx.currency)}</td>
+                    <td className="px-5 py-3 text-gray-600">{tx.payerEmail ?? '—'}</td>
+                    <td className="px-5 py-3 text-right font-semibold text-gray-900">{formatCurrency(tx.amount, tx.currency)}</td>
                     <td className="px-5 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                         tx.status === 'approved' ? 'bg-green-100 text-green-700' :

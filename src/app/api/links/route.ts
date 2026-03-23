@@ -51,6 +51,10 @@ export async function POST(req: NextRequest) {
 
   const plan = (session.user.plan as 'free' | 'pro') ?? 'free';
   const maxLinks = PLAN_LIMITS[plan].maxActiveLinks;
+
+  const slug = generateSlug(parsed.data.title);
+
+  // Verificación atómica: crear solo si no se supera el límite
   if (maxLinks !== Infinity) {
     const activeCount = await PaymentLink.countDocuments({ merchantId: session.user.id, isActive: true });
     if (activeCount >= maxLinks) {
@@ -61,14 +65,24 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const slug = generateSlug(parsed.data.title);
-
   const link = await PaymentLink.create({
     ...parsed.data,
     merchantId: session.user.id,
     slug,
     expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : undefined,
   });
+
+  // Verificación post-creación para cerrar race condition
+  if (maxLinks !== Infinity) {
+    const finalCount = await PaymentLink.countDocuments({ merchantId: session.user.id, isActive: true });
+    if (finalCount > maxLinks) {
+      await PaymentLink.findByIdAndDelete(link._id);
+      return NextResponse.json(
+        { error: `Tu plan Free permite hasta ${maxLinks} links activos. Actualizá a Pro para crear más.` },
+        { status: 403 }
+      );
+    }
+  }
 
   return NextResponse.json(link, { status: 201 });
 }

@@ -21,9 +21,18 @@ export async function PATCH(req: NextRequest) {
 
   await connectDB();
 
+  const isPro = session.user.plan === 'pro';
   const update: Record<string, string> = {};
-  if (parsed.data.businessName !== undefined) update.businessName = parsed.data.businessName;
-  if (parsed.data.brandColor) update.brandColor = parsed.data.brandColor;
+
+  // Campos exclusivos de plan Pro
+  if (parsed.data.businessName !== undefined) {
+    if (!isPro) return NextResponse.json({ error: 'Requiere plan Pro' }, { status: 403 });
+    update.businessName = parsed.data.businessName;
+  }
+  if (parsed.data.brandColor) {
+    if (!isPro) return NextResponse.json({ error: 'Requiere plan Pro' }, { status: 403 });
+    update.brandColor = parsed.data.brandColor;
+  }
   if (parsed.data.mpAccessToken) update.mpAccessToken = encrypt(parsed.data.mpAccessToken);
 
   await User.findByIdAndUpdate(session.user.id, { $set: update });

@@ -14,6 +14,7 @@ export interface IUser extends Document {
   plan: 'free' | 'pro';
   planExpiresAt?: Date;
   mpSubscriptionId?: string;
+  reminderSentAt?: Date;
   createdAt: Date;
 }
 
@@ -32,6 +33,7 @@ const UserSchema = new Schema<IUser>(
     plan: { type: String, enum: ['free', 'pro'], default: 'free' },
     planExpiresAt: { type: Date },
     mpSubscriptionId: { type: String },
+    reminderSentAt: { type: Date },
   },
   { timestamps: true }
 );

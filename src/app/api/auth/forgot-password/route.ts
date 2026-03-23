@@ -4,10 +4,15 @@ import connectDB from '@/lib/db/mongoose';
 import User from '@/models/User';
 import PasswordResetToken from '@/models/PasswordResetToken';
 import { sendPasswordResetEmail } from '@/lib/email/mailer';
+import { isRateLimited } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
   const { email } = await req.json();
   if (!email) return NextResponse.json({ error: 'Email requerido' }, { status: 400 });
+
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0] ?? 'unknown';
+  const limited = await isRateLimited({ key: `forgot-password:${ip}`, limit: 5, windowSeconds: 900 });
+  if (limited) return NextResponse.json({ ok: true }); // No revelar que fue bloqueado
 
   await connectDB();
 

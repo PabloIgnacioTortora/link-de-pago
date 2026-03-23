@@ -87,6 +87,7 @@ export const authOptions: NextAuthConfig = {
           if (dbUser) {
             token.id = dbUser._id.toString();
             token.plan = (dbUser as { plan?: string }).plan ?? 'free';
+            token.planExpiresAt = (dbUser as { planExpiresAt?: Date }).planExpiresAt?.toISOString();
             token.businessName = (dbUser as { businessName?: string }).businessName;
             token.brandColor = (dbUser as { brandColor?: string }).brandColor;
             token.hasMpToken = !!(dbUser as { mpAccessToken?: string }).mpAccessToken;
@@ -96,6 +97,7 @@ export const authOptions: NextAuthConfig = {
           token.businessName = user.businessName;
           token.brandColor = user.brandColor;
           token.plan = user.plan ?? 'free';
+          token.planExpiresAt = user.planExpiresAt;
           token.hasMpToken = user.hasMpToken ?? false;
         }
       }
@@ -105,6 +107,7 @@ export const authOptions: NextAuthConfig = {
         if (fresh) {
           token.hasMpToken = !!fresh.mpAccessToken;
           token.plan = fresh.plan ?? 'free';
+          token.planExpiresAt = fresh.planExpiresAt?.toISOString();
           token.businessName = fresh.businessName;
           token.brandColor = fresh.brandColor;
         }
@@ -116,8 +119,13 @@ export const authOptions: NextAuthConfig = {
       session.user.id = token.id as string;
       session.user.businessName = token.businessName as string | undefined;
       session.user.brandColor = token.brandColor as string | undefined;
-      session.user.plan = ((token.plan as string | undefined) ?? 'free') as 'free' | 'pro';
       session.user.hasMpToken = (token.hasMpToken as boolean | undefined) ?? false;
+
+      // Verificar expiración del plan Pro
+      const planExpiresAt = token.planExpiresAt as string | undefined;
+      const planExpired = planExpiresAt && new Date(planExpiresAt) < new Date();
+      session.user.plan = planExpired ? 'free' : (((token.plan as string | undefined) ?? 'free') as 'free' | 'pro');
+
       return session;
     },
   },

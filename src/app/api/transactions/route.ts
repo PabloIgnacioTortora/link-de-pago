@@ -10,15 +10,18 @@ export async function GET(req: NextRequest) {
   await connectDB();
 
   const { searchParams } = new URL(req.url);
-  const page = parseInt(searchParams.get('page') ?? '1');
-  const status = searchParams.get('status');
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'));
+  const statusParam = searchParams.get('status');
   const linkId = searchParams.get('linkId');
   const limit = 20;
   const skip = (page - 1) * limit;
 
+  const VALID_STATUSES = ['approved', 'pending', 'rejected', 'cancelled'];
+  const status = statusParam && VALID_STATUSES.includes(statusParam) ? statusParam : null;
+
   const filter: Record<string, unknown> = { merchantId: session.user.id };
   if (status) filter.status = status;
-  if (linkId) filter.paymentLinkId = linkId;
+  if (linkId && /^[a-f\d]{24}$/i.test(linkId)) filter.paymentLinkId = linkId;
 
   const [transactions, total] = await Promise.all([
     Transaction.find(filter)

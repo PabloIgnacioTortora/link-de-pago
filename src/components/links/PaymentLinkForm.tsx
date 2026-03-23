@@ -16,6 +16,8 @@ const schema = z.object({
   maxPayments: z.coerce.number().positive().optional().or(z.literal('')),
   expiresAt: z.string().optional(),
   isActive: z.boolean().optional(),
+  successMessage: z.string().max(200).optional(),
+  successUrl: z.string().url('URL inválida').optional().or(z.literal('')),
 });
 
 type FormData = z.output<typeof schema>;
@@ -23,9 +25,10 @@ type FormData = z.output<typeof schema>;
 interface Props {
   initialData?: Partial<FormData> & { _id?: string; isActive?: boolean };
   mode: 'create' | 'edit';
+  isPro?: boolean;
 }
 
-export default function PaymentLinkForm({ initialData, mode }: Props) {
+export default function PaymentLinkForm({ initialData, mode, isPro = false }: Props) {
   const router = useRouter();
   const [error, setError] = useState('');
 
@@ -130,6 +133,33 @@ export default function PaymentLinkForm({ initialData, mode }: Props) {
         error={errors.expiresAt?.message}
         {...register('expiresAt')}
       />
+
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-700">Mensaje de éxito personalizado</label>
+        <input
+          type="text"
+          placeholder="Ej: ¡Gracias! Te contactamos en 24hs."
+          className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          {...register('successMessage')}
+        />
+        <p className="text-xs text-gray-400">Se muestra al pagador luego del pago exitoso.</p>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+          URL de redirección post-pago
+          {!isPro && <span className="text-xs bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded font-semibold">Pro</span>}
+        </label>
+        <input
+          type="url"
+          placeholder="https://tu-sitio.com/gracias"
+          disabled={!isPro}
+          className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50 disabled:text-gray-400"
+          {...register('successUrl')}
+        />
+        {errors.successUrl && <p className="text-xs text-red-500">{errors.successUrl.message}</p>}
+        {!isPro && <p className="text-xs text-gray-400">Disponible en el plan Pro.</p>}
+      </div>
 
       {mode === 'edit' && (
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
