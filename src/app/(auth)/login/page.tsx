@@ -14,6 +14,8 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: '', password: '' });
   const passwordReset = searchParams.get('reset') === '1';
+  const emailVerified = searchParams.get('verified') === '1';
+  const tokenError = searchParams.get('error');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +31,7 @@ function LoginForm() {
     setLoading(false);
 
     if (res?.error) {
-      setError('Email o contraseña incorrectos.');
+      setError('Email o contraseña incorrectos. Si te registraste recientemente, verificá tu email primero.');
     } else {
       window.location.href = '/dashboard';
     }
@@ -40,6 +42,21 @@ function LoginForm() {
       {passwordReset && (
         <p className="text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2 mb-4 text-center">
           Contraseña actualizada. Ya podés iniciar sesión.
+        </p>
+      )}
+      {emailVerified && (
+        <p className="text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2 mb-4 text-center">
+          ¡Email verificado! Ya podés iniciar sesión.
+        </p>
+      )}
+      {tokenError === 'token_expirado' && (
+        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2 mb-4 text-center">
+          El link de verificación expiró. Registrate de nuevo para recibir uno nuevo.
+        </p>
+      )}
+      {tokenError === 'token_invalido' && (
+        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2 mb-4 text-center">
+          Link de verificación inválido.
         </p>
       )}
 
