@@ -49,7 +49,7 @@ export const privacyHtml = `
   <li>Solicitar la eliminación de tu cuenta y datos.</li>
 </ul>
 <p style="color:#444;line-height:1.7;margin-bottom:16px;">
-  Para ejercer estos derechos contactanos en <a href="mailto:info@devagency.dev" style="color:#4f46e5;">info@devagency.dev</a>.
+  Para ejercer estos derechos contactanos en <a href="mailto:soporte@devagency.dev" style="color:#4f46e5;">soporte@devagency.dev</a>.
 </p>
 
 <h2 style="font-size:18px;font-weight:600;color:#111;margin:28px 0 10px;">7. Seguridad</h2>
@@ -64,6 +64,6 @@ export const privacyHtml = `
 
 <h2 style="font-size:18px;font-weight:600;color:#111;margin:28px 0 10px;">9. Contacto</h2>
 <p style="color:#444;line-height:1.7;">
-  Preguntas: <a href="mailto:info@devagency.dev" style="color:#4f46e5;">info@devagency.dev</a>
+  Preguntas: <a href="mailto:soporte@devagency.dev" style="color:#4f46e5;">soporte@devagency.dev</a>
 </p>
 `;
