@@ -5,6 +5,7 @@ import PaymentLink from '@/models/PaymentLink';
 import { generateSlug } from '@/lib/utils/generateSlug';
 import { z } from 'zod';
 import { PLAN_LIMITS } from '@/lib/plans';
+import { checkOrigin } from '@/lib/csrf';
 
 const createSchema = z.object({
   title: z.string().min(1).max(100),
@@ -40,6 +41,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!checkOrigin(req)) return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 });
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 

@@ -46,6 +46,11 @@ export const authOptions: NextAuthConfig = {
           return null;
         }
 
+        if (!user.emailVerified) {
+          console.error('[auth] Email no verificado:', email);
+          return null;
+        }
+
         return {
           id: user._id.toString(),
           name: user.name,
@@ -71,6 +76,7 @@ export const authOptions: NextAuthConfig = {
             email: user.email ?? '',
             image: user.image ?? undefined,
             provider: 'google',
+            emailVerified: true,
           });
         }
       }

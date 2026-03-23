@@ -7,6 +7,7 @@ import { getPayment } from '@/lib/mercadopago/client';
 import { sendPaymentConfirmationEmail } from '@/lib/email/mailer';
 import { verifyMercadoPagoSignature } from '@/lib/mercadopago/verifyWebhook';
 import { decrypt } from '@/lib/crypto';
+import mongoose from 'mongoose';
 
 
 export async function POST(req: NextRequest) {
@@ -14,8 +15,12 @@ export async function POST(req: NextRequest) {
 
   // Verificar firma antes de procesar cualquier evento
   const webhookSecret = process.env.MP_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error('[webhook] MP_WEBHOOK_SECRET no configurado — rechazando request');
+    return NextResponse.json({ error: 'Webhook no configurado' }, { status: 500 });
+  }
   const dataId = String(body.data?.id ?? '');
-  if (webhookSecret && dataId) {
+  if (dataId) {
     const valid = verifyMercadoPagoSignature({
       xSignature: req.headers.get('x-signature'),
       xRequestId: req.headers.get('x-request-id'),
@@ -67,6 +72,10 @@ export async function POST(req: NextRequest) {
     }
 
     const linkId = externalRef;
+    if (!mongoose.isValidObjectId(linkId)) {
+      console.error('[webhook] external_reference inválido:', linkId);
+      return NextResponse.json({ received: true });
+    }
     const link = await PaymentLink.findById(linkId);
     if (!link) return NextResponse.json({ received: true });
 
@@ -126,8 +135,8 @@ export async function POST(req: NextRequest) {
       }
     }
   } catch (err) {
-    console.error('Webhook error:', err);
-    // Return 200 anyway so MP doesn't retry indefinitely
+    console.error('[webhook] Error inesperado procesando pago:', err);
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

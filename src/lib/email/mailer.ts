@@ -15,6 +15,31 @@ interface SendPaymentEmailParams {
   paymentId: string;
 }
 
+export async function sendVerificationEmail({ to, verifyUrl }: { to: string; verifyUrl: string }) {
+  const resend = getResend();
+  if (!resend) {
+    console.error('[mailer] RESEND_API_KEY not set');
+    return;
+  }
+
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM ?? 'LinkPago <onboarding@resend.dev>',
+    to,
+    subject: 'Verificá tu email — LinkPago',
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <h2 style="color:#6366f1">Verificá tu cuenta</h2>
+        <p>Gracias por registrarte en LinkPago. Hacé clic en el botón para verificar tu email.</p>
+        <p>El link expira en <strong>24 horas</strong>.</p>
+        <a href="${verifyUrl}" style="display:inline-block;margin:20px 0;padding:12px 28px;background:#6366f1;color:white;border-radius:8px;text-decoration:none;font-weight:600">
+          Verificar email
+        </a>
+        <p style="color:#6b7280;font-size:14px">Si no te registraste en LinkPago, podés ignorar este email.</p>
+      </div>
+    `,
+  });
+}
+
 export async function sendPasswordResetEmail({ to, resetUrl }: { to: string; resetUrl: string }) {
   const resend = getResend();
   if (!resend) {

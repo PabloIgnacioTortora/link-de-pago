@@ -4,8 +4,15 @@ import PaymentLink from '@/models/PaymentLink';
 import User from '@/models/User';
 import { createPreference } from '@/lib/mercadopago/client';
 import { decrypt } from '@/lib/crypto';
+import { isRateLimited } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0] ?? 'unknown';
+  const limited = await isRateLimited({ key: `payment:${ip}`, limit: 20, windowSeconds: 60 });
+  if (limited) {
+    return NextResponse.json({ error: 'Demasiadas solicitudes. Esperá un momento.' }, { status: 429 });
+  }
+
   const { slug } = await req.json();
 
   if (!slug) return NextResponse.json({ error: 'slug requerido' }, { status: 400 });

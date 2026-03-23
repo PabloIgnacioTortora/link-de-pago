@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import connectDB from '@/lib/db/mongoose';
 import PaymentLink from '@/models/PaymentLink';
 import { z } from 'zod';
+import { checkOrigin } from '@/lib/csrf';
 
 const patchSchema = z.object({
   title: z.string().min(1).max(100).optional(),
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!checkOrigin(req)) return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 });
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
@@ -50,6 +52,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!checkOrigin(req)) return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 });
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 

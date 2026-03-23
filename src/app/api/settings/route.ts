@@ -4,6 +4,7 @@ import connectDB from '@/lib/db/mongoose';
 import User from '@/models/User';
 import { z } from 'zod';
 import { encrypt } from '@/lib/crypto';
+import { checkOrigin } from '@/lib/csrf';
 
 const schema = z.object({
   businessName: z.string().max(100).optional(),
@@ -12,6 +13,7 @@ const schema = z.object({
 });
 
 export async function PATCH(req: NextRequest) {
+  if (!checkOrigin(req)) return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 });
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
