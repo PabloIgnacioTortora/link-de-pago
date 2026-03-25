@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
 
 interface CardBricksProps {
   slug: string;
@@ -11,13 +12,12 @@ interface CardBricksProps {
 export default function CardBricks({ slug, brandColor, onBack }: CardBricksProps) {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
+  const [preferenceId, setPreferenceId] = useState('');
+  const [amount, setAmount] = useState(0);
 
   useEffect(() => {
-    let bricksBuilder: unknown = null;
-
     async function init() {
       try {
-        // Obtener preferenceId y publicKey del backend
         const res = await fetch('/api/payment/bricks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -27,52 +27,10 @@ export default function CardBricks({ slug, brandColor, onBack }: CardBricksProps
         if (!res.ok) { setErrorMsg(data.error ?? 'Error al cargar el pago'); setStatus('error'); return; }
 
         const { preferenceId, publicKey, amount } = data;
-
-        // Cargar el SDK de MP dinámicamente
-        const { initMercadoPago, createBrick } = await import('@mercadopago/sdk-react/pure');
         initMercadoPago(publicKey, { locale: 'es-AR' });
-
-        bricksBuilder = await createBrick({
-          name: 'payment',
-          targetId: 'mp-bricks-container',
-          initialization: {
-            amount,
-            preferenceId,
-          },
-          customization: {
-            paymentMethods: {
-              creditCard: 'all',
-              debitCard: 'all',
-              maxInstallments: 12,
-            },
-            visual: {
-              style: {
-                theme: 'default',
-                customVariables: {
-                  baseColor: brandColor,
-                },
-              },
-            },
-          },
-          callbacks: {
-            onReady: () => setStatus('ready'),
-            onError: (err: unknown) => {
-              console.error('Bricks error:', err);
-              setErrorMsg('Error al cargar el formulario de pago.');
-              setStatus('error');
-            },
-            onSubmit: async ({ formData }: { formData: unknown }) => {
-              const res = await fetch('/api/payment/process', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ slug, formData }),
-              });
-              const result = await res.json();
-              if (!res.ok) { return Promise.reject(result.error ?? 'Error al procesar'); }
-              if (result.redirectUrl) window.location.href = result.redirectUrl;
-            },
-          },
-        });
+        setPreferenceId(preferenceId);
+        setAmount(amount);
+        setStatus('ready');
       } catch (err) {
         console.error('Bricks init error:', err);
         setErrorMsg('Error al inicializar el formulario de pago.');
@@ -81,15 +39,19 @@ export default function CardBricks({ slug, brandColor, onBack }: CardBricksProps
     }
 
     init();
-
-    return () => {
-      // Cleanup: destruir el brick si existe
-      if (bricksBuilder && typeof (bricksBuilder as { unmount?: () => void }).unmount === 'function') {
-        (bricksBuilder as { unmount: () => void }).unmount();
-      }
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
+
+  const handleSubmit = async ({ formData }: { formData: unknown }) => {
+    const res = await fetch('/api/payment/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug, formData }),
+    });
+    const result = await res.json();
+    if (!res.ok) return Promise.reject(result.error ?? 'Error al procesar');
+    if (result.redirectUrl) window.location.href = result.redirectUrl;
+  };
 
   return (
     <div>
@@ -113,7 +75,33 @@ export default function CardBricks({ slug, brandColor, onBack }: CardBricksProps
         <p role="alert" className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{errorMsg}</p>
       )}
 
-      <div id="mp-bricks-container" />
+      {status === 'ready' && (
+        <Payment
+          initialization={{ amount, preferenceId }}
+          customization={{
+            paymentMethods: {
+              creditCard: 'all',
+              debitCard: 'all',
+              maxInstallments: 12,
+            },
+            visual: {
+              style: {
+                theme: 'default',
+                customVariables: {
+                  baseColor: brandColor,
+                },
+              },
+            },
+          }}
+          onSubmit={handleSubmit}
+          onReady={() => {}}
+          onError={(err) => {
+            console.error('Bricks error:', err);
+            setErrorMsg('Error al cargar el formulario de pago.');
+            setStatus('error');
+          }}
+        />
+      )}
     </div>
   );
 }
