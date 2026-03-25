@@ -8,10 +8,19 @@ export async function getMpPublicKey(accessToken: string): Promise<string | null
       headers: { Authorization: `Bearer ${accessToken}` },
       next: { revalidate: 0 },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      console.error(`[getMpPublicKey] MP API returned ${res.status}: ${body.slice(0, 200)}`);
+      return null;
+    }
     const data = await res.json();
-    return (data.credentials?.public_key as string) ?? null;
-  } catch {
+    const key = (data.credentials?.public_key as string) ?? null;
+    if (!key) {
+      console.error('[getMpPublicKey] public_key not found in response. Keys:', Object.keys(data));
+    }
+    return key;
+  } catch (err) {
+    console.error('[getMpPublicKey] fetch error:', err);
     return null;
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
 
 interface CardBricksProps {
@@ -42,7 +42,14 @@ export default function CardBricks({ slug, brandColor, onBack }: CardBricksProps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
-  const handleSubmit = async ({ formData }: { formData: unknown }) => {
+  const initialization = useMemo(() => ({ amount, preferenceId }), [amount, preferenceId]);
+
+  const customization = useMemo(() => ({
+    paymentMethods: { creditCard: 'all' as const, debitCard: 'all' as const, maxInstallments: 12 },
+    visual: { style: { theme: 'default' as const, customVariables: { baseColor: brandColor } } },
+  }), [brandColor]);
+
+  const handleSubmit = useCallback(async ({ formData }: { formData: unknown }) => {
     const res = await fetch('/api/payment/process', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -51,7 +58,13 @@ export default function CardBricks({ slug, brandColor, onBack }: CardBricksProps
     const result = await res.json();
     if (!res.ok) return Promise.reject(result.error ?? 'Error al procesar');
     if (result.redirectUrl) window.location.href = result.redirectUrl;
-  };
+  }, [slug]);
+
+  const handleError = useCallback((err: unknown) => {
+    console.error('Bricks error:', err);
+    setErrorMsg('Error al cargar el formulario de pago.');
+    setStatus('error');
+  }, []);
 
   return (
     <div>
@@ -77,29 +90,11 @@ export default function CardBricks({ slug, brandColor, onBack }: CardBricksProps
 
       {status === 'ready' && (
         <Payment
-          initialization={{ amount, preferenceId }}
-          customization={{
-            paymentMethods: {
-              creditCard: 'all',
-              debitCard: 'all',
-              maxInstallments: 12,
-            },
-            visual: {
-              style: {
-                theme: 'default',
-                customVariables: {
-                  baseColor: brandColor,
-                },
-              },
-            },
-          }}
+          initialization={initialization}
+          customization={customization}
           onSubmit={handleSubmit}
           onReady={() => {}}
-          onError={(err) => {
-            console.error('Bricks error:', err);
-            setErrorMsg('Error al cargar el formulario de pago.');
-            setStatus('error');
-          }}
+          onError={handleError}
         />
       )}
     </div>

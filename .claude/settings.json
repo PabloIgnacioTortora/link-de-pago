@@ -1,9 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ls -la /c/dev/private/link-de-pago/src/app/\\\\\\(dashboard\\\\\\)/)",
-      "Bash(npm run:*)",
-      "Bash(\"c:/dev/private/link-de-pago/src/app/privacy/content.ts\":*)"
     ]
   }
 }

@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
-import CardBricks from './CardBricks';
+
+const CardBricks = dynamic(() => import('./CardBricks'), { ssr: false });
 
 interface TransferInfo {
   cbu?: string;

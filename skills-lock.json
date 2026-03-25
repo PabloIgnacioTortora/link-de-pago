@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "ucp": {
+      "source": "vercel-labs/agentic-commerce-skills",
+      "sourceType": "github",
+      "computedHash": "2192d923530cd10a088ab5b587e9571706833d4f8324c19a1bdc8794af963cc1"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "bbc31a48537b473ff4feea6360ef0de3bfdcbef26c14f4967a5deefe8ca801d3"
+    }
+  }
+}

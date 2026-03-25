@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       preferenceId: preference.id,
-      publicKey: merchant.mpPublicKey,
+      publicKey,
       amount: link.amount,
     });
   } catch (err) {
