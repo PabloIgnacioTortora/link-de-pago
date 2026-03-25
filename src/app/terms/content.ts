@@ -68,6 +68,6 @@ export const termsHtml = `
 
 <h2 style="font-size:18px;font-weight:600;color:#111;margin:28px 0 10px;">10. Contacto</h2>
 <p style="color:#444;line-height:1.7;">
-  Para consultas: <a href="mailto:info@devagency.dev" style="color:#4f46e5;">info@devagency.dev</a>
+  Para consultas: <a href="mailto:soporte@devagency.dev" style="color:#4f46e5;">soporte@devagency.dev</a>
 </p>
 `;

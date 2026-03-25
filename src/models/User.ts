@@ -6,6 +6,7 @@ export interface IUser extends Document {
   password?: string;
   image?: string;
   provider: 'credentials' | 'google';
+  emailVerified: boolean;
   businessName?: string;
   brandColor: string;
   brandLogo?: string;
@@ -14,6 +15,7 @@ export interface IUser extends Document {
   plan: 'free' | 'pro';
   planExpiresAt?: Date;
   mpSubscriptionId?: string;
+  reminderSentAt?: Date;
   createdAt: Date;
 }
 
@@ -24,6 +26,7 @@ const UserSchema = new Schema<IUser>(
     password: { type: String },
     image: { type: String },
     provider: { type: String, enum: ['credentials', 'google'], default: 'credentials' },
+    emailVerified: { type: Boolean, default: false },
     businessName: { type: String },
     brandColor: { type: String, default: '#6366f1' },
     brandLogo: { type: String },
@@ -32,6 +35,7 @@ const UserSchema = new Schema<IUser>(
     plan: { type: String, enum: ['free', 'pro'], default: 'free' },
     planExpiresAt: { type: Date },
     mpSubscriptionId: { type: String },
+    reminderSentAt: { type: Date },
   },
   { timestamps: true }
 );

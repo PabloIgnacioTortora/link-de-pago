@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { auth } from '@/auth';
 import connectDB from '@/lib/db/mongoose';
 import PaymentLink from '@/models/PaymentLink';
 import User from '@/models/User';
 import { generateSlug } from '@/lib/utils/generateSlug';
 import { z } from 'zod';
 import { PLAN_LIMITS } from '@/lib/plans';
+import { checkOrigin } from '@/lib/csrf';
 
 const createSchema = z.object({
   title: z.string().min(1).max(100),
@@ -18,8 +19,8 @@ const createSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   await connectDB();
 
@@ -28,17 +29,22 @@ export async function GET(req: NextRequest) {
   const limit = 10;
   const skip = (page - 1) * limit;
 
+  const showInactive = searchParams.get('inactive') === 'true';
+  const filter: Record<string, unknown> = { merchantId: session.user.id };
+  if (!showInactive) filter.isActive = true;
+
   const [links, total] = await Promise.all([
-    PaymentLink.find({ merchantId: token.id }).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-    PaymentLink.countDocuments({ merchantId: token.id }),
+    PaymentLink.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    PaymentLink.countDocuments(filter),
   ]);
 
   return NextResponse.json({ links, total, page, pages: Math.ceil(total / limit) });
 }
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  if (!checkOrigin(req)) return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 });
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const body = await req.json();
   const parsed = createSchema.safeParse(body);
@@ -47,7 +53,7 @@ export async function POST(req: NextRequest) {
   await connectDB();
 
   // Verificar que el usuario tenga su Access Token de MP configurado
-  const user = await User.findById(token.id).select('mpAccessToken');
+  const user = await User.findById(session.user.id).select('mpAccessToken');
   if (!user?.mpAccessToken) {
     return NextResponse.json(
       { error: 'Debés configurar tu Access Token de MercadoPago en Ajustes antes de crear links.' },
@@ -55,11 +61,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Verificar límite de plan
-  const plan = (token.plan as 'free' | 'pro') ?? 'free';
+  const plan = (session.user.plan as 'free' | 'pro') ?? 'free';
   const maxLinks = PLAN_LIMITS[plan].maxActiveLinks;
+
+  const slug = generateSlug(parsed.data.title);
+
+  // Verificación atómica: crear solo si no se supera el límite
   if (maxLinks !== Infinity) {
-    const activeCount = await PaymentLink.countDocuments({ merchantId: token.id, isActive: true });
+    const activeCount = await PaymentLink.countDocuments({ merchantId: session.user.id, isActive: true });
     if (activeCount >= maxLinks) {
       return NextResponse.json(
         { error: `Tu plan Free permite hasta ${maxLinks} links activos. Actualizá a Pro para crear más.` },
@@ -68,14 +77,24 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const slug = generateSlug(parsed.data.title);
-
   const link = await PaymentLink.create({
     ...parsed.data,
-    merchantId: token.id,
+    merchantId: session.user.id,
     slug,
     expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : undefined,
   });
+
+  // Verificación post-creación para cerrar race condition
+  if (maxLinks !== Infinity) {
+    const finalCount = await PaymentLink.countDocuments({ merchantId: session.user.id, isActive: true });
+    if (finalCount > maxLinks) {
+      await PaymentLink.findByIdAndDelete(link._id);
+      return NextResponse.json(
+        { error: `Tu plan Free permite hasta ${maxLinks} links activos. Actualizá a Pro para crear más.` },
+        { status: 403 }
+      );
+    }
+  }
 
   return NextResponse.json(link, { status: 201 });
 }

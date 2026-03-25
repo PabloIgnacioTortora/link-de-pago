@@ -11,6 +11,7 @@ export interface IPaymentLink extends Document {
   maxPayments?: number;
   expiresAt?: Date;
   successUrl?: string;
+  successMessage?: string;
   totalCollected: number;
   paymentCount: number;
   createdAt: Date;
@@ -29,6 +30,7 @@ const PaymentLinkSchema = new Schema<IPaymentLink>(
     maxPayments: { type: Number },
     expiresAt: { type: Date },
     successUrl: { type: String },
+    successMessage: { type: String },
     totalCollected: { type: Number, default: 0 },
     paymentCount: { type: Number, default: 0 },
   },

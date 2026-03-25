@@ -1,6 +1,7 @@
-import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import connectDB from '@/lib/db/mongoose';
 import PaymentLink from '@/models/PaymentLink';
+import User from '@/models/User';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
 
 export default async function SuccessPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -8,6 +9,16 @@ export default async function SuccessPage({ params }: { params: Promise<{ slug: 
 
   await connectDB();
   const link = await PaymentLink.findOne({ slug }).lean();
+
+  // Redirección personalizada Pro
+  if (link?.successUrl) {
+    const merchant = await User.findById(link.merchantId).select('plan').lean();
+    if (merchant?.plan === 'pro') {
+      redirect(link.successUrl);
+    }
+  }
+
+  const successMessage = link?.successMessage ?? 'Recibirás una confirmación por email. ¡Gracias por tu pago!';
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -29,9 +40,7 @@ export default async function SuccessPage({ params }: { params: Promise<{ slug: 
           </div>
         )}
 
-        <p className="text-sm text-gray-400">
-          Recibirás una confirmación por email. ¡Gracias por tu pago!
-        </p>
+        <p className="text-sm text-gray-400">{successMessage}</p>
       </div>
     </div>
   );

@@ -6,41 +6,30 @@ import User from '@/models/User';
 import { getPayment } from '@/lib/mercadopago/client';
 import { sendPaymentConfirmationEmail } from '@/lib/email/mailer';
 import { verifyMercadoPagoSignature } from '@/lib/mercadopago/verifyWebhook';
+import { decrypt } from '@/lib/crypto';
+import mongoose from 'mongoose';
 
-async function handleSubscription(dataId: string) {
-  const client = new (await import('mercadopago')).MercadoPagoConfig({
-    accessToken: process.env.MP_ACCESS_TOKEN!,
-  });
-  const { PreApproval } = await import('mercadopago');
-  const preapproval = new PreApproval(client);
-  const sub = await preapproval.get({ id: dataId });
-
-  await connectDB();
-
-  if (sub.status === 'authorized') {
-    await User.findOneAndUpdate(
-      { email: sub.payer_email },
-      { $set: { plan: 'pro', mpSubscriptionId: dataId, planExpiresAt: null } }
-    );
-  } else if (sub.status === 'cancelled' || sub.status === 'paused') {
-    await User.findOneAndUpdate(
-      { mpSubscriptionId: dataId },
-      { $set: { plan: 'free', mpSubscriptionId: undefined, planExpiresAt: undefined } }
-    );
-  }
-}
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
-  // Manejar eventos de suscripción
-  if (body.type === 'subscription_preapproval' && body.data?.id) {
-    try {
-      await handleSubscription(String(body.data.id));
-    } catch (err) {
-      console.error('Subscription webhook error:', err);
+  // Verificar firma antes de procesar cualquier evento
+  const webhookSecret = process.env.MP_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error('[webhook] MP_WEBHOOK_SECRET no configurado — rechazando request');
+    return NextResponse.json({ error: 'Webhook no configurado' }, { status: 500 });
+  }
+  const dataId = String(body.data?.id ?? '');
+  if (dataId) {
+    const valid = verifyMercadoPagoSignature({
+      xSignature: req.headers.get('x-signature'),
+      xRequestId: req.headers.get('x-request-id'),
+      dataId,
+      secret: webhookSecret,
+    });
+    if (!valid) {
+      return NextResponse.json({ error: 'Firma inválida' }, { status: 401 });
     }
-    return NextResponse.json({ received: true });
   }
 
   // Only process payment notifications
@@ -49,20 +38,6 @@ export async function POST(req: NextRequest) {
   }
 
   const paymentId = String(body.data.id);
-
-  // Verificar firma si el secret está configurado
-  const webhookSecret = process.env.MP_WEBHOOK_SECRET;
-  if (webhookSecret) {
-    const valid = verifyMercadoPagoSignature({
-      xSignature: req.headers.get('x-signature'),
-      xRequestId: req.headers.get('x-request-id'),
-      dataId: paymentId,
-      secret: webhookSecret,
-    });
-    if (!valid) {
-      return NextResponse.json({ error: 'Firma inválida' }, { status: 401 });
-    }
-  }
 
   try {
     await connectDB();
@@ -79,9 +54,28 @@ export async function POST(req: NextRequest) {
     // then re-fetch with merchant token if needed.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const paymentPlatform: any = await getPayment(paymentId);
-    const linkId = paymentPlatform.external_reference;
-    if (!linkId) return NextResponse.json({ received: true });
+    const externalRef = paymentPlatform.external_reference as string | undefined;
+    if (!externalRef) return NextResponse.json({ received: true });
 
+    // Manejar pago de plan Pro
+    if (externalRef.startsWith('sub_pro_')) {
+      if (paymentPlatform.status === 'approved') {
+        const userId = externalRef.slice('sub_pro_'.length);
+        const planExpiresAt = new Date();
+        planExpiresAt.setMonth(planExpiresAt.getMonth() + 1);
+        await User.findByIdAndUpdate(userId, {
+          $set: { plan: 'pro', planExpiresAt },
+        });
+        console.log('[webhook] Plan Pro activado para usuario:', userId);
+      }
+      return NextResponse.json({ received: true });
+    }
+
+    const linkId = externalRef;
+    if (!mongoose.isValidObjectId(linkId)) {
+      console.error('[webhook] external_reference inválido:', linkId);
+      return NextResponse.json({ received: true });
+    }
     const link = await PaymentLink.findById(linkId);
     if (!link) return NextResponse.json({ received: true });
 
@@ -91,7 +85,7 @@ export async function POST(req: NextRequest) {
     // Re-fetch payment with merchant token if they have one, so we get accurate data
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payment: any = merchant?.mpAccessToken
-      ? await getPayment(paymentId, merchant.mpAccessToken)
+      ? await getPayment(paymentId, decrypt(merchant.mpAccessToken))
       : paymentPlatform;
 
     const status = payment.status as 'pending' | 'approved' | 'rejected' | 'cancelled';
@@ -141,8 +135,8 @@ export async function POST(req: NextRequest) {
       }
     }
   } catch (err) {
-    console.error('Webhook error:', err);
-    // Return 200 anyway so MP doesn't retry indefinitely
+    console.error('[webhook] Error inesperado procesando pago:', err);
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

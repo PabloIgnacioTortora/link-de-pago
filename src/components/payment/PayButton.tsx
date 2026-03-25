@@ -25,7 +25,11 @@ export default function PayButton({ slug, brandColor }: PayButtonProps) {
     const data = await res.json();
 
     if (!res.ok) {
-      setError(data.error ?? 'Error al iniciar el pago');
+      setError(
+        res.status === 503
+          ? 'Este comercio aún no configuró su cuenta de MercadoPago. Contactalo para avisarle.'
+          : (data.error ?? 'Error al iniciar el pago')
+      );
       setLoading(false);
       return;
     }

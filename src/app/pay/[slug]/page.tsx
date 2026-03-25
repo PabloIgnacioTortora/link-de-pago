@@ -1,10 +1,39 @@
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import connectDB from '@/lib/db/mongoose';
 import PaymentLink from '@/models/PaymentLink';
 import User from '@/models/User';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
 import PayButton from '@/components/payment/PayButton';
 import ShareQR from '@/components/payment/ShareQR';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  await connectDB();
+  const link = await PaymentLink.findOne({ slug }).lean();
+  if (!link) return {};
+
+  const merchant = await User.findById(link.merchantId).select('businessName name plan').lean();
+  const merchantName = merchant?.plan === 'pro'
+    ? (merchant?.businessName ?? merchant?.name ?? 'LinkPago')
+    : 'LinkPago';
+
+  const title = `${link.title} — ${merchantName}`;
+  const description = link.description
+    ? `${link.description} · Pagá ${formatCurrency(link.amount, link.currency)} de forma segura con MercadoPago.`
+    : `Pagá ${formatCurrency(link.amount, link.currency)} de forma segura con MercadoPago.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+    },
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function PayPage({ params, searchParams }: {
   params: Promise<{ slug: string }>;
@@ -18,7 +47,7 @@ export default async function PayPage({ params, searchParams }: {
   const link = await PaymentLink.findOne({ slug }).lean();
   if (!link) notFound();
 
-  const merchant = await User.findById(link.merchantId).select('name businessName brandColor plan').lean();
+  const merchant = await User.findById(link.merchantId).select('name businessName brandColor brandLogo plan').lean();
 
   const isExpired = link.expiresAt && new Date() > new Date(link.expiresAt);
   const isMaxed = link.maxPayments && link.paymentCount >= link.maxPayments;
@@ -29,6 +58,7 @@ export default async function PayPage({ params, searchParams }: {
   const merchantName = isPro
     ? (merchant?.businessName ?? merchant?.name ?? 'Comerciante')
     : 'LinkPago';
+  const brandLogo = isPro ? (merchant?.brandLogo ?? null) : null;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
@@ -38,7 +68,12 @@ export default async function PayPage({ params, searchParams }: {
           className="rounded-t-2xl p-6 text-white text-center"
           style={{ backgroundColor: brandColor }}
         >
-          <p className="text-sm font-medium opacity-80 mb-1">Pago para</p>
+          {brandLogo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={brandLogo} alt={merchantName} className="h-12 w-auto mx-auto mb-2 rounded object-contain" />
+          ) : (
+            <p className="text-sm font-medium opacity-80 mb-1">Pago para</p>
+          )}
           <h1 className="text-xl font-bold">{merchantName}</h1>
         </div>
 
@@ -74,7 +109,7 @@ export default async function PayPage({ params, searchParams }: {
             Pago seguro procesado por MercadoPago
           </p>
 
-          <ShareQR url={`${process.env.NEXT_PUBLIC_APP_URL}/pay/${slug}`} />
+          <ShareQR url={`${process.env.NEXT_PUBLIC_APP_URL}/pay/${slug}`} title={link.title} />
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-4">

@@ -1,24 +1,22 @@
-'use client';
-
-import { useEffect, useState } from 'react';
+import { auth } from '@/auth';
+import connectDB from '@/lib/db/mongoose';
+import User from '@/models/User';
 import Link from 'next/link';
 import Header from '@/components/dashboard/Header';
 import PaymentLinkForm from '@/components/links/PaymentLinkForm';
 
-export default function NewLinkPage() {
-  const [hasMpToken, setHasMpToken] = useState<boolean | null>(null);
+export default async function NewLinkPage() {
+  const session = await auth();
 
-  useEffect(() => {
-    fetch('/api/settings')
-      .then((r) => r.json())
-      .then((data) => setHasMpToken(!!data.hasMpToken));
-  }, []);
+  await connectDB();
+  const user = await User.findById(session?.user?.id).select('mpAccessToken');
+  const hasMpToken = !!user?.mpAccessToken;
 
   return (
     <div className="flex-1 overflow-auto">
       <Header title="Crear Link de Cobro" />
       <main className="p-6">
-        {hasMpToken === false ? (
+        {!hasMpToken ? (
           <div className="max-w-lg bg-amber-50 border border-amber-200 rounded-xl px-5 py-6 space-y-3">
             <p className="text-sm font-medium text-amber-800">
               Necesitás configurar tu Access Token de MercadoPago antes de crear links de pago.
@@ -31,7 +29,7 @@ export default function NewLinkPage() {
             </Link>
           </div>
         ) : (
-          <PaymentLinkForm mode="create" />
+          <PaymentLinkForm mode="create" isPro={session?.user?.plan === 'pro'} />
         )}
       </main>
     </div>

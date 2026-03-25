@@ -19,7 +19,7 @@ export default async function EditLinkPage({ params }: { params: Promise<{ id: s
     <div className="flex-1 overflow-auto">
       <Header title="Editar Link" />
       <main className="p-6">
-        <PaymentLinkForm mode="edit" initialData={{ ...serialized, _id: String(serialized._id) }} />
+        <PaymentLinkForm mode="edit" initialData={{ ...serialized, _id: String(serialized._id) }} isPro={session?.user?.plan === 'pro'} />
       </main>
     </div>
   );

@@ -7,6 +7,7 @@ declare module 'next-auth' {
       businessName?: string;
       brandColor?: string;
       plan?: 'free' | 'pro';
+      hasMpToken?: boolean;
     } & DefaultSession['user'];
   }
 
@@ -15,6 +16,8 @@ declare module 'next-auth' {
     businessName?: string;
     brandColor?: string;
     plan?: 'free' | 'pro';
+    planExpiresAt?: string;
+    hasMpToken?: boolean;
   }
 }
 
@@ -24,5 +27,7 @@ declare module 'next-auth/jwt' {
     businessName?: string;
     brandColor?: string;
     plan?: 'free' | 'pro';
+    planExpiresAt?: string;
+    hasMpToken?: boolean;
   }
 }

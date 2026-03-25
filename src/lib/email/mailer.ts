@@ -15,6 +15,87 @@ interface SendPaymentEmailParams {
   paymentId: string;
 }
 
+export async function sendVerificationEmail({ to, verifyUrl }: { to: string; verifyUrl: string }) {
+  const resend = getResend();
+  if (!resend) {
+    console.error('[mailer] RESEND_API_KEY not set');
+    return;
+  }
+
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM ?? 'LinkPago <onboarding@resend.dev>',
+    to,
+    subject: 'Verificá tu email — LinkPago',
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <h2 style="color:#6366f1">Verificá tu cuenta</h2>
+        <p>Gracias por registrarte en LinkPago. Hacé clic en el botón para verificar tu email.</p>
+        <p>El link expira en <strong>24 horas</strong>.</p>
+        <a href="${verifyUrl}" style="display:inline-block;margin:20px 0;padding:12px 28px;background:#6366f1;color:white;border-radius:8px;text-decoration:none;font-weight:600">
+          Verificar email
+        </a>
+        <p style="color:#6b7280;font-size:14px">Si no te registraste en LinkPago, podés ignorar este email.</p>
+      </div>
+    `,
+  });
+}
+
+export async function sendPasswordResetEmail({ to, resetUrl }: { to: string; resetUrl: string }) {
+  const resend = getResend();
+  if (!resend) {
+    console.error('[mailer] RESEND_API_KEY not set');
+    return;
+  }
+
+  const result = await resend.emails.send({
+    from: process.env.EMAIL_FROM ?? 'LinkPago <onboarding@resend.dev>',
+    to,
+    subject: 'Restablecer contraseña — LinkPago',
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <h2 style="color:#6366f1">Restablecer contraseña</h2>
+        <p>Recibimos una solicitud para restablecer tu contraseña.</p>
+        <p>Hacé clic en el siguiente botón para crear una nueva contraseña. El link expira en <strong>1 hora</strong>.</p>
+        <a href="${resetUrl}" style="display:inline-block;margin:20px 0;padding:12px 28px;background:#6366f1;color:white;border-radius:8px;text-decoration:none;font-weight:600">
+          Restablecer contraseña
+        </a>
+        <p style="color:#6b7280;font-size:14px">Si no solicitaste esto, podés ignorar este email.</p>
+      </div>
+    `,
+  });
+  console.log('[mailer] Password reset email result:', JSON.stringify(result));
+}
+
+export async function sendPlanExpiryReminderEmail({ to, name, expiresAt, appUrl }: {
+  to: string;
+  name: string;
+  expiresAt: Date;
+  appUrl: string;
+}) {
+  const resend = getResend();
+  if (!resend) return;
+
+  const fecha = expiresAt.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM ?? 'LinkPago <onboarding@resend.dev>',
+    to,
+    subject: '⚠️ Tu plan Pro vence en 3 días — LinkPago',
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <h2 style="color:#6366f1">Tu plan Pro está por vencer</h2>
+        <p>Hola <strong>${name}</strong>,</p>
+        <p>Tu plan Pro de LinkPago vence el <strong>${fecha}</strong>.</p>
+        <p>Para seguir usando todas las funcionalidades (marca propia, emails de confirmación y links ilimitados), renovalo antes de que venza.</p>
+        <a href="${appUrl}/dashboard" style="display:inline-block;margin:20px 0;padding:12px 28px;background:#6366f1;color:white;border-radius:8px;text-decoration:none;font-weight:600">
+          Renovar plan Pro
+        </a>
+        <p style="color:#6b7280;font-size:14px">Si no renovás, tu cuenta pasará automáticamente al plan Free.</p>
+      </div>
+    `,
+  });
+}
+
 export async function sendPaymentConfirmationEmail({
   to,
   merchantName,
@@ -33,7 +114,7 @@ export async function sendPaymentConfirmationEmail({
   if (!resend) return;
 
   await resend.emails.send({
-    from: 'LinkPago <notificaciones@linkpago.app>',
+    from: process.env.EMAIL_FROM ?? 'LinkPago <onboarding@resend.dev>',
     to,
     subject: `✅ Nuevo pago recibido — ${formatted}`,
     html: `

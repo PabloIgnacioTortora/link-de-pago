@@ -1,24 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { auth } from '@/auth';
 import connectDB from '@/lib/db/mongoose';
 import Transaction from '@/models/Transaction';
 
 export async function GET(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   await connectDB();
 
   const { searchParams } = new URL(req.url);
-  const page = parseInt(searchParams.get('page') ?? '1');
-  const status = searchParams.get('status');
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'));
+  const statusParam = searchParams.get('status');
   const linkId = searchParams.get('linkId');
   const limit = 20;
   const skip = (page - 1) * limit;
 
-  const filter: Record<string, unknown> = { merchantId: token.id };
+  const VALID_STATUSES = ['approved', 'pending', 'rejected', 'cancelled'];
+  const status = statusParam && VALID_STATUSES.includes(statusParam) ? statusParam : null;
+
+  const filter: Record<string, unknown> = { merchantId: session.user.id };
   if (status) filter.status = status;
-  if (linkId) filter.paymentLinkId = linkId;
+  if (linkId && /^[a-f\d]{24}$/i.test(linkId)) filter.paymentLinkId = linkId;
 
   const [transactions, total] = await Promise.all([
     Transaction.find(filter)
