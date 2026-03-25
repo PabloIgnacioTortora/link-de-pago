@@ -6,6 +6,7 @@ export interface ITransaction extends Document {
   paymentLinkId: Types.ObjectId;
   merchantId: Types.ObjectId;
   mpPaymentId: string;
+  paymentType: 'card' | 'transfer';
   mpPreferenceId?: string;
   amount: number;
   currency: string;
@@ -24,6 +25,7 @@ const TransactionSchema = new Schema<ITransaction>(
     paymentLinkId: { type: Schema.Types.ObjectId, ref: 'PaymentLink', required: true, index: true },
     merchantId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     mpPaymentId: { type: String, required: true, unique: true },
+    paymentType: { type: String, enum: ['card', 'transfer'], default: 'card' },
     mpPreferenceId: { type: String },
     amount: { type: Number, required: true },
     currency: { type: String, required: true },

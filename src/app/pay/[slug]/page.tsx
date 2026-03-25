@@ -4,7 +4,7 @@ import connectDB from '@/lib/db/mongoose';
 import PaymentLink from '@/models/PaymentLink';
 import User from '@/models/User';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
-import PayButton from '@/components/payment/PayButton';
+import PaymentOptions from '@/components/payment/PaymentOptions';
 import ShareQR from '@/components/payment/ShareQR';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -47,7 +47,7 @@ export default async function PayPage({ params, searchParams }: {
   const link = await PaymentLink.findOne({ slug }).lean();
   if (!link) notFound();
 
-  const merchant = await User.findById(link.merchantId).select('name businessName brandColor brandLogo plan').lean();
+  const merchant = await User.findById(link.merchantId).select('name businessName brandColor brandLogo mpAccessToken transferCbu transferAlias transferHolder plan').lean();
 
   const isExpired = link.expiresAt && new Date() > new Date(link.expiresAt);
   const isMaxed = link.maxPayments && link.paymentCount >= link.maxPayments;
@@ -90,19 +90,30 @@ export default async function PayPage({ params, searchParams }: {
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-100 rounded-lg px-4 py-3 mb-4 text-sm text-red-600">
+            <div role="alert" className="bg-red-50 border border-red-100 rounded-lg px-4 py-3 mb-4 text-sm text-red-600">
               Hubo un problema con el pago. Por favor intentá de nuevo.
             </div>
           )}
 
           {isUnavailable ? (
-            <div className="bg-yellow-50 border border-yellow-100 rounded-lg px-4 py-4 text-center text-sm text-yellow-700">
+            <div role="status" className="bg-yellow-50 border border-yellow-100 rounded-lg px-4 py-4 text-center text-sm text-yellow-700">
               {!link.isActive && 'Este link de cobro no está disponible.'}
               {isExpired && 'Este link ha expirado.'}
               {isMaxed && 'Este link ya alcanzó el límite de pagos.'}
             </div>
           ) : (
-            <PayButton slug={slug} brandColor={brandColor} />
+            <PaymentOptions
+              slug={slug}
+              amount={link.amount}
+              currency={link.currency}
+              brandColor={brandColor}
+              hasCard={!!merchant?.mpAccessToken}
+              transfer={
+                (merchant?.transferCbu || merchant?.transferAlias)
+                  ? { cbu: merchant.transferCbu, alias: merchant.transferAlias, holder: merchant.transferHolder }
+                  : undefined
+              }
+            />
           )}
 
           <p className="text-xs text-gray-400 text-center mt-4">

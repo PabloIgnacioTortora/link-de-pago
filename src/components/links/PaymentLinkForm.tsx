@@ -54,7 +54,11 @@ export default function PaymentLinkForm({ initialData, mode, isPro = false }: Pr
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...data, maxPayments: data.maxPayments || undefined }),
+      body: JSON.stringify({
+        ...data,
+        maxPayments: data.maxPayments || undefined,
+        successUrl: data.successUrl || undefined,
+      }),
     });
 
     if (!res.ok) {
@@ -78,8 +82,9 @@ export default function PaymentLinkForm({ initialData, mode, isPro = false }: Pr
       />
 
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-700">Descripción</label>
+        <label htmlFor="description" className="text-sm font-medium text-gray-700">Descripción</label>
         <textarea
+          id="description"
           rows={3}
           placeholder="Detalle opcional del cobro..."
           className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -101,8 +106,9 @@ export default function PaymentLinkForm({ initialData, mode, isPro = false }: Pr
           />
         </div>
         <div className="w-28">
-          <label className="text-sm font-medium text-gray-700 block mb-1">Moneda</label>
+          <label htmlFor="currency" className="text-sm font-medium text-gray-700 block mb-1">Moneda</label>
           <select
+            id="currency"
             className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             {...register('currency')}
           >
@@ -135,8 +141,9 @@ export default function PaymentLinkForm({ initialData, mode, isPro = false }: Pr
       />
 
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-700">Mensaje de éxito personalizado</label>
+        <label htmlFor="successMessage" className="text-sm font-medium text-gray-700">Mensaje de éxito personalizado</label>
         <input
+          id="successMessage"
           type="text"
           placeholder="Ej: ¡Gracias! Te contactamos en 24hs."
           className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -146,19 +153,21 @@ export default function PaymentLinkForm({ initialData, mode, isPro = false }: Pr
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+        <label htmlFor="successUrl" className="text-sm font-medium text-gray-700 flex items-center gap-2">
           URL de redirección post-pago
           {!isPro && <span className="text-xs bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded font-semibold">Pro</span>}
         </label>
         <input
+          id="successUrl"
           type="url"
           placeholder="https://tu-sitio.com/gracias"
           disabled={!isPro}
+          aria-describedby={!isPro ? 'successUrl-desc' : undefined}
           className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-50 disabled:text-gray-400"
           {...register('successUrl')}
         />
         {errors.successUrl && <p className="text-xs text-red-500">{errors.successUrl.message}</p>}
-        {!isPro && <p className="text-xs text-gray-400">Disponible en el plan Pro.</p>}
+        {!isPro && <p id="successUrl-desc" className="text-xs text-gray-400">Disponible en el plan Pro.</p>}
       </div>
 
       {mode === 'edit' && (
@@ -169,6 +178,9 @@ export default function PaymentLinkForm({ initialData, mode, isPro = false }: Pr
           </div>
           <button
             type="button"
+            role="switch"
+            aria-checked={isActive}
+            aria-label="Link activo"
             onClick={() => setValue('isActive', !isActive)}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
               isActive ? 'bg-indigo-600' : 'bg-gray-300'
@@ -183,7 +195,7 @@ export default function PaymentLinkForm({ initialData, mode, isPro = false }: Pr
         </div>
       )}
 
-      {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+      {error && <p role="alert" className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
       <div className="flex gap-3 pt-2">
         <Button type="submit" loading={isSubmitting} size="lg">

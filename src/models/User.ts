@@ -12,6 +12,9 @@ export interface IUser extends Document {
   brandLogo?: string;
   mpAccessToken?: string;
   mpPublicKey?: string;
+  transferCbu?: string;
+  transferAlias?: string;
+  transferHolder?: string;
   plan: 'free' | 'pro';
   planExpiresAt?: Date;
   mpSubscriptionId?: string;
@@ -32,6 +35,9 @@ const UserSchema = new Schema<IUser>(
     brandLogo: { type: String },
     mpAccessToken: { type: String },
     mpPublicKey: { type: String },
+    transferCbu: { type: String },
+    transferAlias: { type: String },
+    transferHolder: { type: String },
     plan: { type: String, enum: ['free', 'pro'], default: 'free' },
     planExpiresAt: { type: Date },
     mpSubscriptionId: { type: String },
