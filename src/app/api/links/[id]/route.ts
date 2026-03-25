@@ -12,7 +12,7 @@ const patchSchema = z.object({
   isActive: z.boolean().optional(),
   expiresAt: z.string().nullable().optional(),
   maxPayments: z.number().positive().nullable().optional(),
-  successUrl: z.string().url().optional().nullable(),
+  successUrl: z.string().url().nullable().optional(),
 });
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -36,7 +36,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params;
   const body = await req.json();
   const parsed = patchSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
 
   await connectDB();
 
