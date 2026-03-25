@@ -41,15 +41,9 @@ export async function PATCH(req: NextRequest) {
   const isPro = session.user.plan === 'pro';
   const update: Record<string, string> = {};
 
-  // Campos exclusivos de plan Pro
-  if (parsed.data.businessName !== undefined) {
-    if (!isPro) return NextResponse.json({ error: 'Requiere plan Pro' }, { status: 403 });
-    update.businessName = parsed.data.businessName;
-  }
-  if (parsed.data.brandColor) {
-    if (!isPro) return NextResponse.json({ error: 'Requiere plan Pro' }, { status: 403 });
-    update.brandColor = parsed.data.brandColor;
-  }
+  // Campos exclusivos de plan Pro — se ignoran silenciosamente para usuarios free
+  if (parsed.data.businessName && isPro) update.businessName = parsed.data.businessName;
+  if (parsed.data.brandColor && isPro) update.brandColor = parsed.data.brandColor;
   if (parsed.data.mpAccessToken) update.mpAccessToken = encrypt(parsed.data.mpAccessToken);
 
   await User.findByIdAndUpdate(session.user.id, { $set: update });

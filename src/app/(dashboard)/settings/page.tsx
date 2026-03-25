@@ -134,7 +134,10 @@ export default function SettingsPage() {
     if (res.ok) {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-      // Refrescar sesión para actualizar hasMpToken
+      if (form.mpAccessToken) {
+        setHasSavedToken(true);
+        setForm((f) => ({ ...f, mpAccessToken: '' }));
+      }
       await update();
     }
   };
