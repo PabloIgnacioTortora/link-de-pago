@@ -12,12 +12,12 @@ const schema = z.object({
   mpAccessToken: z.string().optional(),
 });
 
-export async function GET(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+export async function GET(_req: NextRequest) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   await connectDB();
-  const user = await User.findById(token.id).select('businessName brandColor mpAccessToken');
+  const user = await User.findById(session.user.id).select('businessName brandColor mpAccessToken');
   if (!user) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
 
   return NextResponse.json({
