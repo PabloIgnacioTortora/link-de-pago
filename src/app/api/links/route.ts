@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import connectDB from '@/lib/db/mongoose';
 import PaymentLink from '@/models/PaymentLink';
+import User from '@/models/User';
 import { generateSlug } from '@/lib/utils/generateSlug';
 import { z } from 'zod';
 import { PLAN_LIMITS } from '@/lib/plans';
@@ -44,6 +45,15 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   await connectDB();
+
+  // Verificar que el usuario tenga su Access Token de MP configurado
+  const user = await User.findById(token.id).select('mpAccessToken');
+  if (!user?.mpAccessToken) {
+    return NextResponse.json(
+      { error: 'Debés configurar tu Access Token de MercadoPago en Ajustes antes de crear links.' },
+      { status: 403 }
+    );
+  }
 
   // Verificar límite de plan
   const plan = (token.plan as 'free' | 'pro') ?? 'free';

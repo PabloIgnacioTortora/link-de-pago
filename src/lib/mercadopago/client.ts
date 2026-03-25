@@ -1,9 +1,9 @@
 import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 
 function getMPClient(accessToken?: string) {
-  return new MercadoPagoConfig({
-    accessToken: accessToken ?? process.env.MP_ACCESS_TOKEN!,
-  });
+  const token = accessToken ?? process.env.MP_ACCESS_TOKEN;
+  if (!token) throw new Error('No hay Access Token de MercadoPago configurado');
+  return new MercadoPagoConfig({ accessToken: token });
 }
 
 export interface CreatePreferenceParams {

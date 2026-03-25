@@ -10,6 +10,21 @@ const schema = z.object({
   mpAccessToken: z.string().optional(),
 });
 
+export async function GET(req: NextRequest) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+
+  await connectDB();
+  const user = await User.findById(token.id).select('businessName brandColor mpAccessToken');
+  if (!user) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+
+  return NextResponse.json({
+    businessName: user.businessName ?? '',
+    brandColor: user.brandColor ?? '#6366f1',
+    hasMpToken: !!user.mpAccessToken,
+  });
+}
+
 export async function PATCH(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });

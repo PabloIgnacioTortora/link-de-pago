@@ -11,22 +11,26 @@ export default function SettingsPage() {
   const { data: session, status } = useSession();
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [hasSavedToken, setHasSavedToken] = useState(false);
   const [form, setForm] = useState({
     businessName: '',
     brandColor: '#6366f1',
     mpAccessToken: '',
   });
 
-  // Inicializar cuando la sesión esté disponible
   useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
-      setForm((f) => ({
-        ...f,
-        businessName: session.user.businessName ?? '',
-        brandColor: session.user.brandColor ?? '#6366f1',
-      }));
-    }
-  }, [status, session]);
+    if (status !== 'authenticated') return;
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((data) => {
+        setForm((f) => ({
+          ...f,
+          businessName: data.businessName ?? '',
+          brandColor: data.brandColor ?? '#6366f1',
+        }));
+        setHasSavedToken(!!data.hasMpToken);
+      });
+  }, [status]);
 
   const handleSave = async () => {
     setLoading(true);
@@ -107,17 +111,22 @@ export default function SettingsPage() {
           )}
 
           <div className="border-t border-gray-100 pt-4">
-            <h3 className="font-medium text-gray-700 mb-3">MercadoPago (opcional)</h3>
+            <h3 className="font-medium text-gray-700 mb-3">MercadoPago</h3>
             <p className="text-xs text-gray-400 mb-3">
-              Dejá en blanco para usar las credenciales de la plataforma. Completá con tu Access Token propio para recibir pagos directamente en tu cuenta MP.
+              Requerido para crear links de pago. Los pagos se acreditan directamente en tu cuenta de MercadoPago.
             </p>
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Access Token</label>
+              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                Access Token
+                {hasSavedToken && !form.mpAccessToken && (
+                  <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">Configurado</span>
+                )}
+              </label>
               <input
                 type="password"
                 value={form.mpAccessToken}
                 onChange={(e) => setForm((f) => ({ ...f, mpAccessToken: e.target.value }))}
-                placeholder="APP_USR-..."
+                placeholder={hasSavedToken ? 'Dejá en blanco para mantener el actual' : 'APP_USR-...'}
                 className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>

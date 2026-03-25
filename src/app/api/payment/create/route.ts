@@ -25,15 +25,27 @@ export async function POST(req: NextRequest) {
   }
 
   const merchant = await User.findById(link.merchantId).select('mpAccessToken');
+  if (!merchant?.mpAccessToken) {
+    return NextResponse.json({ error: 'Este link no está disponible por ahora.' }, { status: 503 });
+  }
 
-  const preference = await createPreference({
-    title: link.title,
-    amount: link.amount,
-    currency: link.currency,
-    slug: link.slug,
-    linkId: link._id.toString(),
-    accessToken: merchant?.mpAccessToken,
-  });
+  try {
+    const preference = await createPreference({
+      title: link.title,
+      amount: link.amount,
+      currency: link.currency,
+      slug: link.slug,
+      linkId: link._id.toString(),
+      accessToken: merchant.mpAccessToken,
+    });
 
-  return NextResponse.json({ initPoint: preference.init_point });
+    if (!preference.init_point) {
+      return NextResponse.json({ error: 'No se pudo generar el link de pago' }, { status: 502 });
+    }
+
+    return NextResponse.json({ initPoint: preference.init_point });
+  } catch (err) {
+    console.error('MercadoPago error:', err);
+    return NextResponse.json({ error: 'Error al conectar con MercadoPago. Verificá tu Access Token en Ajustes.' }, { status: 502 });
+  }
 }
