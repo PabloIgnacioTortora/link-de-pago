@@ -7,7 +7,6 @@
  */
 
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { auth } from '@/auth';
 import { getAuthorizationUrl } from '@/lib/mp/oauth';
 
@@ -19,15 +18,16 @@ export async function GET() {
 
   const { url, state } = getAuthorizationUrl(session.user.id);
 
-  // Guardar state en cookie httpOnly para validarlo en el callback (anti-CSRF)
-  const cookieStore = await cookies();
-  cookieStore.set('mp_oauth_state', state, {
+  // La cookie se setea sobre el mismo objeto response del redirect,
+  // de lo contrario Next.js no la incluye en los headers de la respuesta.
+  const response = NextResponse.redirect(url);
+  response.cookies.set('mp_oauth_state', state, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 10, // 10 minutos (mismo TTL que el code de MP)
+    maxAge: 60 * 10,
     path: '/',
   });
 
-  return NextResponse.redirect(url);
+  return response;
 }
