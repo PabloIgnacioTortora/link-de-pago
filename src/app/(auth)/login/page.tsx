@@ -6,11 +6,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import { toast } from 'sonner';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: '', password: '' });
   const passwordReset = searchParams.get('reset') === '1';
@@ -20,7 +20,6 @@ function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     const res = await signIn('credentials', {
       email: form.email,
@@ -31,7 +30,7 @@ function LoginForm() {
     setLoading(false);
 
     if (res?.error) {
-      setError('Email o contraseña incorrectos. Si te registraste recientemente, verificá tu email primero.');
+      toast.error('Email o contraseña incorrectos. Si te registraste recientemente, verificá tu email primero.');
     } else {
       window.location.href = '/dashboard';
     }
@@ -86,8 +85,6 @@ function LoginForm() {
             </Link>
           </div>
         </div>
-
-        {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
         <Button type="submit" loading={loading} size="lg" className="w-full">
           Iniciar sesión

@@ -3,6 +3,7 @@ import { Geist } from 'next/font/google';
 import './globals.css';
 import SessionProvider from '@/components/auth/SessionProvider';
 import { auth } from '@/auth';
+import { Toaster } from 'sonner';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
 
@@ -64,6 +65,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="es">
       <body className={`${geist.variable} font-sans antialiased bg-gray-50`}>
         <SessionProvider session={session}>{children}</SessionProvider>
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );

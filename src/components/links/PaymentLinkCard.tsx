@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -26,7 +27,6 @@ interface PaymentLinkCardProps {
 }
 
 export default function PaymentLinkCard({ link, onDelete, isPro = false }: PaymentLinkCardProps) {
-  const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const url = `${window.location.origin}/pay/${link.slug}`;
@@ -38,14 +38,13 @@ export default function PaymentLinkCard({ link, onDelete, isPro = false }: Payme
     if (res.ok) window.location.reload();
     else {
       const { error } = await res.json();
-      alert(error ?? 'Error al duplicar el link');
+      toast.error(error ?? 'Error al duplicar el link');
     }
   };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    toast.success('¡Link copiado!');
   };
 
   return (
@@ -92,7 +91,7 @@ export default function PaymentLinkCard({ link, onDelete, isPro = false }: Payme
           onClick={handleCopy}
           className="text-xs text-indigo-600 font-medium hover:underline whitespace-nowrap"
         >
-          {copied ? '¡Copiado!' : 'Copiar'}
+          Copiar
         </button>
       </div>
 

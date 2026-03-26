@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Header from '@/components/dashboard/Header';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import { toast } from 'sonner';
 
 const STEPS = [
   {
@@ -103,7 +104,6 @@ function MpTokenHelp() {
 
 export default function SettingsPage() {
   const { data: session, status, update } = useSession();
-  const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hasSavedToken, setHasSavedToken] = useState(false);
   const [form, setForm] = useState({
@@ -157,8 +157,7 @@ export default function SettingsPage() {
     });
     setLoading(false);
     if (res.ok) {
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      toast.success('Cambios guardados correctamente.');
       const newSaved = {
         businessName: form.businessName,
         brandColor: form.brandColor,
@@ -342,10 +341,6 @@ export default function SettingsPage() {
               />
             </div>
           </div>
-
-          {saved && (
-            <p role="status" aria-live="polite" className="text-sm text-green-600 bg-green-50 rounded-lg px-3 py-2">Cambios guardados correctamente.</p>
-          )}
 
           <Button loading={loading} disabled={!isDirty} onClick={handleSave}>Guardar cambios</Button>
         </div>

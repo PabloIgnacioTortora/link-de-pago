@@ -4,9 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import { toast } from 'sonner';
 
 export default function RegisterPage() {
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '' });
@@ -14,7 +14,6 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     const res = await fetch('/api/auth/register', {
       method: 'POST',
@@ -24,7 +23,7 @@ export default function RegisterPage() {
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? 'Error al registrar');
+      toast.error(data.error ?? 'Error al registrar');
       setLoading(false);
       return;
     }
@@ -88,8 +87,6 @@ export default function RegisterPage() {
             required
             minLength={8}
           />
-
-          {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
           <Button type="submit" loading={loading} size="lg" className="w-full">
             Crear cuenta

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import connectDB from '@/lib/db/mongoose';
 import Transaction from '@/models/Transaction';
+import '@/models/PaymentLink';
 
 export async function GET(req: NextRequest) {
   const session = await auth();

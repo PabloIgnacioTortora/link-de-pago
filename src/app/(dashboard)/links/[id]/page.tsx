@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import connectDB from '@/lib/db/mongoose';
 import PaymentLink from '@/models/PaymentLink';
@@ -7,10 +7,11 @@ import PaymentLinkForm from '@/components/links/PaymentLinkForm';
 
 export default async function EditLinkPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
+  if (!session?.user) redirect('/login');
   const { id } = await params;
 
   await connectDB();
-  const link = await PaymentLink.findOne({ _id: id, merchantId: session?.user?.id }).lean();
+  const link = await PaymentLink.findOne({ _id: id, merchantId: session.user.id }).lean();
   if (!link) notFound();
 
   const serialized = JSON.parse(JSON.stringify(link));

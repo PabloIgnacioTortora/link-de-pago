@@ -1,9 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 import { PRO_PRICE_ARS } from '@/lib/plans';
+import { checkOrigin } from '@/lib/csrf';
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  if (!checkOrigin(req)) return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 });
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 

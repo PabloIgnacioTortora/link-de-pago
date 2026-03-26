@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import connectDB from '@/lib/db/mongoose';
 import Transaction from '@/models/Transaction';
+import '@/models/PaymentLink';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
 
 export async function GET() {

@@ -4,17 +4,16 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import { toast } from 'sonner';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     const res = await fetch('/api/auth/forgot-password', {
       method: 'POST',
@@ -27,7 +26,7 @@ export default function ForgotPasswordPage() {
     if (res.ok) {
       setSent(true);
     } else {
-      setError('Ocurrió un error. Intentá de nuevo.');
+      toast.error('Ocurrió un error. Intentá de nuevo.');
     }
   };
 
@@ -60,8 +59,6 @@ export default function ForgotPasswordPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-
-            {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
             <Button type="submit" loading={loading} size="lg" className="w-full">
               Enviar link de recuperación

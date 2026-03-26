@@ -4,9 +4,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import { toast } from 'sonner';
 
 const schema = z.object({
   title: z.string().min(1, 'El título es requerido').max(100),
@@ -30,7 +30,6 @@ interface Props {
 
 export default function PaymentLinkForm({ initialData, mode, isPro = false }: Props) {
   const router = useRouter();
-  const [error, setError] = useState('');
 
   const {
     register,
@@ -47,7 +46,6 @@ export default function PaymentLinkForm({ initialData, mode, isPro = false }: Pr
   const isActive = watch('isActive');
 
   const onSubmit = async (data: FormData) => {
-    setError('');
     const url = mode === 'create' ? '/api/links' : `/api/links/${initialData?._id}`;
     const method = mode === 'create' ? 'POST' : 'PATCH';
 
@@ -63,7 +61,7 @@ export default function PaymentLinkForm({ initialData, mode, isPro = false }: Pr
 
     if (!res.ok) {
       const json = await res.json();
-      setError(json.error ?? 'Error al guardar el link');
+      toast.error(json.error ?? 'Error al guardar el link');
       return;
     }
 
@@ -194,8 +192,6 @@ export default function PaymentLinkForm({ initialData, mode, isPro = false }: Pr
           </button>
         </div>
       )}
-
-      {error && <p role="alert" className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
       <div className="flex gap-3 pt-2">
         <Button type="submit" loading={isSubmitting} size="lg">

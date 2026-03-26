@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import { toast } from 'sonner';
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -14,18 +15,16 @@ function ResetPasswordForm() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
 
     if (password.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres.');
+      toast.error('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
     if (password !== confirm) {
-      setError('Las contraseñas no coinciden.');
+      toast.error('Las contraseñas no coinciden.');
       return;
     }
 
@@ -43,7 +42,7 @@ function ResetPasswordForm() {
       router.push('/login?reset=1');
     } else {
       const data = await res.json();
-      setError(data.error ?? 'Error al restablecer la contraseña.');
+      toast.error(data.error ?? 'Error al restablecer la contraseña.');
     }
   };
 
@@ -79,8 +78,6 @@ function ResetPasswordForm() {
         onChange={(e) => setConfirm(e.target.value)}
         required
       />
-
-      {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
 
       <Button type="submit" loading={loading} size="lg" className="w-full">
         Guardar nueva contraseña
