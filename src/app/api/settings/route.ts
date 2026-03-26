@@ -11,6 +11,7 @@ const schema = z.object({
   businessName: z.string().max(100).optional(),
   brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   mpAccessToken: z.string().optional(),
+  mpPublicKey: z.string().optional(),
   transferCbu: z.string().max(22).optional(),
   transferAlias: z.string().max(50).optional(),
   transferHolder: z.string().max(100).optional(),
@@ -28,6 +29,7 @@ export async function GET(_req: NextRequest) {
     businessName: user.businessName ?? '',
     brandColor: user.brandColor ?? '#6366f1',
     hasMpToken: !!user.mpAccessToken,
+    hasMpPublicKey: !!user.mpPublicKey,
     transferCbu: user.transferCbu ?? '',
     transferAlias: user.transferAlias ?? '',
     transferHolder: user.transferHolder ?? '',
@@ -53,16 +55,14 @@ export async function PATCH(req: NextRequest) {
   if (parsed.data.brandColor && isPro) update.brandColor = parsed.data.brandColor;
   if (parsed.data.mpAccessToken) {
     update.mpAccessToken = encrypt(parsed.data.mpAccessToken);
-    // Derivar public key automáticamente
-    const publicKey = await getMpPublicKey(parsed.data.mpAccessToken);
-    if (publicKey) update.mpPublicKey = publicKey;
-  } else {
-    // Si ya tiene token guardado, intentar derivar la public key si no la tiene
-    const existing = await User.findById(session.user.id).select('mpAccessToken mpPublicKey');
-    if (existing?.mpAccessToken && !existing.mpPublicKey) {
-      const publicKey = await getMpPublicKey(decrypt(existing.mpAccessToken));
+    // Intentar derivar la public key automáticamente si el usuario no la proporcionó
+    if (!parsed.data.mpPublicKey) {
+      const publicKey = await getMpPublicKey(parsed.data.mpAccessToken);
       if (publicKey) update.mpPublicKey = publicKey;
     }
+  }
+  if (parsed.data.mpPublicKey) {
+    update.mpPublicKey = parsed.data.mpPublicKey;
   }
   if (parsed.data.transferCbu !== undefined) update.transferCbu = parsed.data.transferCbu;
   if (parsed.data.transferAlias !== undefined) update.transferAlias = parsed.data.transferAlias;

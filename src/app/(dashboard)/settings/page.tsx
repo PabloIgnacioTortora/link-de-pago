@@ -106,10 +106,12 @@ export default function SettingsPage() {
   const { data: session, status, update } = useSession();
   const [loading, setLoading] = useState(false);
   const [hasSavedToken, setHasSavedToken] = useState(false);
+  const [hasSavedPublicKey, setHasSavedPublicKey] = useState(false);
   const [form, setForm] = useState({
     businessName: '',
     brandColor: '#6366f1',
     mpAccessToken: '',
+    mpPublicKey: '',
     transferCbu: '',
     transferAlias: '',
     transferHolder: '',
@@ -137,11 +139,13 @@ export default function SettingsPage() {
         setForm((f) => ({ ...f, ...loaded }));
         setSavedForm(loaded);
         setHasSavedToken(!!data.hasMpToken);
+        setHasSavedPublicKey(!!data.hasMpPublicKey);
       });
   }, [status]);
 
   const isDirty =
     form.mpAccessToken !== '' ||
+    form.mpPublicKey !== '' ||
     form.businessName !== savedForm.businessName ||
     form.brandColor !== savedForm.brandColor ||
     form.transferCbu !== savedForm.transferCbu ||
@@ -169,6 +173,10 @@ export default function SettingsPage() {
       if (form.mpAccessToken) {
         setHasSavedToken(true);
         setForm((f) => ({ ...f, mpAccessToken: '' }));
+      }
+      if (form.mpPublicKey) {
+        setHasSavedPublicKey(true);
+        setForm((f) => ({ ...f, mpPublicKey: '' }));
       }
       await update();
     }
@@ -294,6 +302,37 @@ export default function SettingsPage() {
                 : form.mpAccessToken
                   ? <p className="text-xs text-indigo-600 mt-1">Token listo para guardar.</p>
                   : null
+              }
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label htmlFor="mpPublicKey" className="text-sm font-medium text-gray-700">
+                Tu Clave Pública de producción
+              </label>
+              <div className="relative">
+                <input
+                  id="mpPublicKey"
+                  type="text"
+                  value={form.mpPublicKey}
+                  onChange={(e) => setForm((f) => ({ ...f, mpPublicKey: e.target.value }))}
+                  placeholder={hasSavedPublicKey ? 'APP_USR-••••••••••••••••••••••••' : 'APP_USR-00000000-0000-0000-0000-000000000000'}
+                  className={`block w-full rounded-lg border px-3 py-2 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono ${hasSavedPublicKey && !form.mpPublicKey ? 'border-green-300 bg-green-50' : 'border-gray-300'}`}
+                />
+                {hasSavedPublicKey && !form.mpPublicKey && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </span>
+                )}
+              </div>
+              {hasSavedPublicKey && !form.mpPublicKey
+                ? <p className="text-xs text-green-600 mt-1" role="status"><span aria-hidden="true">✓</span> Clave pública configurada. Los pagos con tarjeta están habilitados.</p>
+                : !hasSavedPublicKey && hasSavedToken && !form.mpPublicKey
+                  ? <p className="text-xs text-amber-600 mt-1">⚠ Ingresá tu clave pública para habilitar pagos con tarjeta.</p>
+                  : form.mpPublicKey
+                    ? <p className="text-xs text-indigo-600 mt-1">Clave pública lista para guardar.</p>
+                    : null
               }
             </div>
           </div>

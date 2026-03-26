@@ -21,18 +21,21 @@ interface PaymentOptionsProps {
   transfer?: TransferInfo;
 }
 
-type Method = 'card' | 'transfer' | null;
+type Method = 'card' | 'mp' | 'transfer' | null;
 type TransferStep = 'form' | 'details' | 'done';
 
 export default function PaymentOptions({ slug, amount, currency, brandColor, hasCard, transfer }: PaymentOptionsProps) {
   const hasTransfer = !!(transfer?.cbu || transfer?.alias);
-  const bothAvailable = hasCard && hasTransfer;
 
-  const [method, setMethod] = useState<Method>(bothAvailable ? null : hasCard ? 'card' : 'transfer');
+  // Si hasCard: siempre mostrar selector (card bricks + mp redirect + transfer si hay)
+  // Si solo transfer: ir directo a transfer
+  const [method, setMethod] = useState<Method>(hasCard ? null : hasTransfer ? 'transfer' : null);
   const [transferStep, setTransferStep] = useState<TransferStep>('form');
   const [payerName, setPayerName] = useState('');
   const [payerEmail, setPayerEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mpLoading, setMpLoading] = useState(false);
+  const [mpError, setMpError] = useState('');
   const [error, setError] = useState('');
 
   const handleTransferConfirm = async () => {
@@ -49,31 +52,78 @@ export default function PaymentOptions({ slug, amount, currency, brandColor, has
     setTransferStep('done');
   };
 
+  const handleMpCheckout = async () => {
+    setMpLoading(true);
+    setMpError('');
+    const res = await fetch('/api/payment/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setMpLoading(false);
+      setMpError(data.error ?? 'Error al conectar con MercadoPago.');
+      return;
+    }
+    window.location.href = data.initPoint;
+  };
+
   // Selector de método
   if (method === null) {
     return (
       <div className="space-y-3">
         <p className="text-sm text-gray-500 text-center mb-1">Elegí cómo querés pagar</p>
-        <button
-          onClick={() => setMethod('card')}
-          className="w-full flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3 hover:border-indigo-400 hover:bg-indigo-50 transition-colors text-left"
-        >
-          <span className="text-2xl" aria-hidden="true">💳</span>
-          <div>
-            <p className="text-sm font-medium text-gray-800">Tarjeta de débito o crédito</p>
-            <p className="text-xs text-gray-400">Pago seguro procesado por MercadoPago</p>
-          </div>
-        </button>
-        <button
-          onClick={() => setMethod('transfer')}
-          className="w-full flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3 hover:border-indigo-400 hover:bg-indigo-50 transition-colors text-left"
-        >
-          <span className="text-2xl" aria-hidden="true">🏦</span>
-          <div>
-            <p className="text-sm font-medium text-gray-800">Transferencia bancaria</p>
-            <p className="text-xs text-gray-400">CBU / CVU / Alias</p>
-          </div>
-        </button>
+
+        {hasCard && (
+          <button
+            onClick={() => setMethod('card')}
+            className="w-full flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3 hover:border-indigo-400 hover:bg-indigo-50 transition-colors text-left"
+          >
+            <span className="text-2xl" aria-hidden="true">💳</span>
+            <div>
+              <p className="text-sm font-medium text-gray-800">Tarjeta de débito o crédito</p>
+              <p className="text-xs text-gray-400">Ingresá tus datos de tarjeta</p>
+            </div>
+          </button>
+        )}
+
+        {hasCard && (
+          <button
+            onClick={handleMpCheckout}
+            disabled={mpLoading}
+            className="w-full flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3 hover:border-blue-400 hover:bg-blue-50 transition-colors text-left disabled:opacity-60"
+          >
+            <span className="text-2xl" aria-hidden="true">🛒</span>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-800">
+                {mpLoading ? 'Redirigiendo a MercadoPago...' : 'Pagar con MercadoPago'}
+              </p>
+              <p className="text-xs text-gray-400">Tarjeta, saldo MP, Mercado Crédito y más</p>
+            </div>
+            {mpLoading && (
+              <svg className="animate-spin h-4 w-4 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+            )}
+          </button>
+        )}
+
+        {mpError && <p role="alert" className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{mpError}</p>}
+
+        {hasTransfer && (
+          <button
+            onClick={() => setMethod('transfer')}
+            className="w-full flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3 hover:border-indigo-400 hover:bg-indigo-50 transition-colors text-left"
+          >
+            <span className="text-2xl" aria-hidden="true">🏦</span>
+            <div>
+              <p className="text-sm font-medium text-gray-800">Transferencia bancaria</p>
+              <p className="text-xs text-gray-400">CBU / CVU / Alias</p>
+            </div>
+          </button>
+        )}
       </div>
     );
   }
@@ -84,7 +134,7 @@ export default function PaymentOptions({ slug, amount, currency, brandColor, has
       <CardBricks
         slug={slug}
         brandColor={brandColor}
-        onBack={bothAvailable ? () => setMethod(null) : undefined}
+        onBack={() => setMethod(null)}
       />
     );
   }
@@ -93,7 +143,7 @@ export default function PaymentOptions({ slug, amount, currency, brandColor, has
   if (method === 'transfer' && transferStep === 'form') {
     return (
       <div className="space-y-3">
-        {bothAvailable && (
+        {hasCard && (
           <button onClick={() => setMethod(null)} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1" aria-label="Volver a selección de método de pago">
             <span aria-hidden="true">←</span> Cambiar método
           </button>
