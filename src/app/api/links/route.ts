@@ -52,11 +52,11 @@ export async function POST(req: NextRequest) {
 
   await connectDB();
 
-  // Verificar que el usuario tenga su Access Token de MP configurado
+  // Verificar que el usuario tenga MercadoPago conectado
   const user = await User.findById(session.user.id).select('mpAccessToken');
   if (!user?.mpAccessToken) {
     return NextResponse.json(
-      { error: 'Debés configurar tu Access Token de MercadoPago en Ajustes antes de crear links.' },
+      { error: 'Debés conectar tu cuenta de MercadoPago en Configuración antes de crear links.' },
       { status: 403 }
     );
   }
