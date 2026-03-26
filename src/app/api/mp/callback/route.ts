@@ -38,27 +38,34 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${redirectBase}?mp=error&reason=state_mismatch`);
   }
 
-  // Limpiar cookie en la respuesta
-  const clearCookie = (res: NextResponse) => {
+  // ── Leer code_verifier (PKCE) ─────────────────────────────────────────────
+  const codeVerifier = cookieStore.get('mp_oauth_verifier')?.value;
+  if (!codeVerifier) {
+    console.error('[MP OAuth callback] Missing code_verifier cookie');
+    return NextResponse.redirect(`${redirectBase}?mp=error&reason=missing_verifier`);
+  }
+
+  // Limpiar ambas cookies en la respuesta
+  const clearCookies = (res: NextResponse) => {
     res.cookies.set('mp_oauth_state', '', { maxAge: 0, path: '/' });
+    res.cookies.set('mp_oauth_verifier', '', { maxAge: 0, path: '/' });
     return res;
   };
 
   // ── Extraer userId del state (formato: "userId:nonce") ────────────────────
   const userId = stateFromMp.split(':')[0];
   if (!userId) {
-    return clearCookie(NextResponse.redirect(`${redirectBase}?mp=error&reason=no_user`));
+    return clearCookies(NextResponse.redirect(`${redirectBase}?mp=error&reason=no_user`));
   }
 
   // ── Intercambiar code por tokens ──────────────────────────────────────────
   try {
-    await exchangeCodeForTokens(userId, code);
-    return clearCookie(NextResponse.redirect(`${redirectBase}?mp=connected`));
+    await exchangeCodeForTokens(userId, code, codeVerifier);
+    return clearCookies(NextResponse.redirect(`${redirectBase}?mp=connected`));
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[MP OAuth callback] Token exchange failed:', msg);
-    // Pasamos los primeros 80 chars del error en la URL para debuggear sin ir a logs
     const reason = encodeURIComponent(msg.slice(0, 80));
-    return clearCookie(NextResponse.redirect(`${redirectBase}?mp=error&reason=${reason}`));
+    return clearCookies(NextResponse.redirect(`${redirectBase}?mp=error&reason=${reason}`));
   }
 }

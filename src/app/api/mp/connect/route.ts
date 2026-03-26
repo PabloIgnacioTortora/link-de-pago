@@ -16,18 +16,19 @@ export async function GET() {
     return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
   }
 
-  const { url, state } = getAuthorizationUrl(session.user.id);
+  const { url, state, codeVerifier } = getAuthorizationUrl(session.user.id);
 
-  // La cookie se setea sobre el mismo objeto response del redirect,
-  // de lo contrario Next.js no la incluye en los headers de la respuesta.
-  const response = NextResponse.redirect(url);
-  response.cookies.set('mp_oauth_state', state, {
+  const cookieOpts = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'lax' as const,
     maxAge: 60 * 10,
     path: '/',
-  });
+  };
+
+  const response = NextResponse.redirect(url);
+  response.cookies.set('mp_oauth_state', state, cookieOpts);
+  response.cookies.set('mp_oauth_verifier', codeVerifier, cookieOpts);
 
   return response;
 }

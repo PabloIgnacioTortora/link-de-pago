@@ -11,6 +11,7 @@ import { encrypt, decrypt } from '@/lib/crypto';
 import connectDB from '@/lib/db/mongoose';
 import User from '@/models/User';
 import { getMpPublicKey } from '@/lib/mercadopago/getPublicKey';
+import { createHash, randomBytes } from 'crypto';
 
 const MP_OAUTH_URL = 'https://auth.mercadopago.com.ar/authorization';
 const MP_TOKEN_URL = 'https://api.mercadopago.com/oauth/token';
@@ -18,29 +19,57 @@ const MP_TOKEN_URL = 'https://api.mercadopago.com/oauth/token';
 // 15 minutos antes del vencimiento real renovamos proactivamente
 const REFRESH_BUFFER_MS = 15 * 60 * 1000;
 
+// ─── PKCE helpers ─────────────────────────────────────────────────────────────
+
+function generateCodeVerifier(): string {
+  // 32 bytes random → 43 chars base64url (dentro del rango 43-128 de RFC 7636)
+  return randomBytes(32)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+function generateCodeChallenge(verifier: string): string {
+  return createHash('sha256')
+    .update(verifier)
+    .digest('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
 // ─── Paso 1: Generar URL de autorización ──────────────────────────────────────
 
 /**
- * Genera la URL a la que hay que redirigir al vendedor.
- * El parámetro `state` lleva el userId de tu plataforma + un nonce random
- * para prevenir CSRF. Guardalo en la sesión antes de redirigir.
+ * Genera la URL de autorización con PKCE (requerido por MP Connect).
+ * Devuelve también `state` y `codeVerifier` para guardarlos en cookies
+ * antes de redirigir al vendedor.
  */
-export function getAuthorizationUrl(userId: string): { url: string; state: string } {
+export function getAuthorizationUrl(userId: string): {
+  url: string;
+  state: string;
+  codeVerifier: string;
+} {
   const clientId = process.env.MP_CLIENT_ID!;
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/mp/callback`;
 
-  // state = userId:randomNonce  (firmado por nosotros, no por MP)
   const nonce = crypto.randomUUID();
   const state = `${userId}:${nonce}`;
+
+  const codeVerifier = generateCodeVerifier();
+  const codeChallenge = generateCodeChallenge(codeVerifier);
 
   const params = new URLSearchParams({
     client_id: clientId,
     response_type: 'code',
     redirect_uri: redirectUri,
     state,
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256',
   });
 
-  return { url: `${MP_OAUTH_URL}?${params.toString()}`, state };
+  return { url: `${MP_OAUTH_URL}?${params.toString()}`, state, codeVerifier };
 }
 
 // ─── Paso 2: Intercambiar code por tokens ─────────────────────────────────────
@@ -61,7 +90,8 @@ interface MpTokenResponse {
  */
 export async function exchangeCodeForTokens(
   userId: string,
-  code: string
+  code: string,
+  codeVerifier: string
 ): Promise<void> {
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/mp/callback`;
 
@@ -71,6 +101,7 @@ export async function exchangeCodeForTokens(
     client_secret: process.env.MP_CLIENT_SECRET!,
     code,
     redirect_uri: redirectUri,
+    code_verifier: codeVerifier,
   });
 
   const res = await fetch(MP_TOKEN_URL, {
