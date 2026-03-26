@@ -44,7 +44,10 @@ export default function SettingsPage() {
     } else if (mp === 'cancelled') {
       toast.info('Cancelaste la conexión con MercadoPago.');
     } else if (mp === 'error') {
-      toast.error('Hubo un error al conectar con MercadoPago. Intentá de nuevo.');
+      const reason = searchParams.get('reason') ?? '';
+      toast.error(`Error al conectar con MercadoPago${reason ? `: ${reason}` : '.'}`, {
+        duration: 10000,
+      });
     }
 
     // Limpiar el query param de la URL sin recargar

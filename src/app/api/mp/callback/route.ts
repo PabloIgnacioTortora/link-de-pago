@@ -34,25 +34,31 @@ export async function GET(req: NextRequest) {
   const savedState = cookieStore.get('mp_oauth_state')?.value;
 
   if (!savedState || savedState !== stateFromMp) {
-    // Posible ataque CSRF o cookie expirada (> 10 min)
+    console.error('[MP OAuth callback] State mismatch. savedState:', savedState, 'stateFromMp:', stateFromMp);
     return NextResponse.redirect(`${redirectBase}?mp=error&reason=state_mismatch`);
   }
 
-  // Limpiar la cookie de estado una vez usada
-  cookieStore.delete('mp_oauth_state');
+  // Limpiar cookie en la respuesta
+  const clearCookie = (res: NextResponse) => {
+    res.cookies.set('mp_oauth_state', '', { maxAge: 0, path: '/' });
+    return res;
+  };
 
   // ── Extraer userId del state (formato: "userId:nonce") ────────────────────
   const userId = stateFromMp.split(':')[0];
   if (!userId) {
-    return NextResponse.redirect(`${redirectBase}?mp=error`);
+    return clearCookie(NextResponse.redirect(`${redirectBase}?mp=error&reason=no_user`));
   }
 
   // ── Intercambiar code por tokens ──────────────────────────────────────────
   try {
     await exchangeCodeForTokens(userId, code);
-    return NextResponse.redirect(`${redirectBase}?mp=connected`);
+    return clearCookie(NextResponse.redirect(`${redirectBase}?mp=connected`));
   } catch (err) {
-    console.error('[MP OAuth callback] Token exchange failed:', err);
-    return NextResponse.redirect(`${redirectBase}?mp=error`);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[MP OAuth callback] Token exchange failed:', msg);
+    // Pasamos los primeros 80 chars del error en la URL para debuggear sin ir a logs
+    const reason = encodeURIComponent(msg.slice(0, 80));
+    return clearCookie(NextResponse.redirect(`${redirectBase}?mp=error&reason=${reason}`));
   }
 }
