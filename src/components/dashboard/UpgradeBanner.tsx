@@ -1,11 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 export default function UpgradeBanner() {
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleUpgrade = async () => {
     setLoading(true);
@@ -19,7 +17,7 @@ export default function UpgradeBanner() {
   };
 
   return (
-    <div className="mx-6 mt-4 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-xl p-4 flex items-center justify-between gap-4">
+    <div className="mx-4 md:mx-6 mt-4 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
       <div className="text-white">
         <p className="font-semibold text-sm">Estás en el plan Free</p>
         <p className="text-xs text-indigo-200 mt-0.5">Hasta 2 links activos · Sin marca propia · Sin QR · Sin emails</p>

@@ -3,7 +3,7 @@ import connectDB from '@/lib/db/mongoose';
 import PaymentLink from '@/models/PaymentLink';
 import User from '@/models/User';
 import { createPreference } from '@/lib/mercadopago/client';
-import { decrypt } from '@/lib/crypto';
+import { getValidAccessToken } from '@/lib/mp/oauth';
 import { isRateLimited } from '@/lib/rateLimit';
 import { getMpPublicKey } from '@/lib/mercadopago/getPublicKey';
 
@@ -34,9 +34,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Este link no está disponible por ahora.' }, { status: 503 });
   }
 
+  let accessToken: string;
+  try {
+    accessToken = await getValidAccessToken(String(link.merchantId));
+  } catch {
+    return NextResponse.json({ error: 'Este link no está disponible por ahora.' }, { status: 503 });
+  }
+
   let publicKey: string | undefined = merchant.mpPublicKey;
   if (!publicKey) {
-    publicKey = await getMpPublicKey(decrypt(merchant.mpAccessToken)) ?? undefined;
+    publicKey = await getMpPublicKey(accessToken) ?? undefined;
     if (publicKey) {
       await User.findByIdAndUpdate(link.merchantId, { $set: { mpPublicKey: publicKey } });
     } else {
@@ -51,7 +58,7 @@ export async function POST(req: NextRequest) {
       currency: link.currency,
       slug: link.slug,
       linkId: link._id.toString(),
-      accessToken: decrypt(merchant.mpAccessToken),
+      accessToken,
     });
 
     if (!preference.id) {

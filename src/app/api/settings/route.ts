@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import connectDB from '@/lib/db/mongoose';
 import User from '@/models/User';
 import { z } from 'zod';
-import { encrypt, decrypt } from '@/lib/crypto';
+import { encrypt } from '@/lib/crypto';
 import { checkOrigin } from '@/lib/csrf';
 import { getMpPublicKey } from '@/lib/mercadopago/getPublicKey';
 
@@ -22,7 +22,9 @@ export async function GET(_req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   await connectDB();
-  const user = await User.findById(session.user.id).select('businessName brandColor mpAccessToken transferCbu transferAlias transferHolder');
+  const user = await User.findById(session.user.id).select(
+    'businessName brandColor mpAccessToken mpRefreshToken mpTokenExpiresAt mpUserId transferCbu transferAlias transferHolder'
+  );
   if (!user) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
 
   return NextResponse.json({
@@ -30,6 +32,10 @@ export async function GET(_req: NextRequest) {
     brandColor: user.brandColor ?? '#6366f1',
     hasMpToken: !!user.mpAccessToken,
     hasMpPublicKey: !!user.mpPublicKey,
+    // OAuth Connect
+    hasMpOAuth: !!user.mpRefreshToken,
+    mpTokenExpiresAt: user.mpTokenExpiresAt ?? null,
+    mpUserId: user.mpUserId ?? null,
     transferCbu: user.transferCbu ?? '',
     transferAlias: user.transferAlias ?? '',
     transferHolder: user.transferHolder ?? '',

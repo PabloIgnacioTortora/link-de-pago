@@ -3,7 +3,7 @@ import { MercadoPagoConfig, Payment } from 'mercadopago';
 import connectDB from '@/lib/db/mongoose';
 import PaymentLink from '@/models/PaymentLink';
 import User from '@/models/User';
-import { decrypt } from '@/lib/crypto';
+import { getValidAccessToken } from '@/lib/mp/oauth';
 import { isRateLimited } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
@@ -28,8 +28,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Este link no está disponible.' }, { status: 503 });
   }
 
+  let accessToken: string;
   try {
-    const client = new MercadoPagoConfig({ accessToken: decrypt(merchant.mpAccessToken) });
+    accessToken = await getValidAccessToken(String(link.merchantId));
+  } catch {
+    return NextResponse.json({ error: 'Este link no está disponible.' }, { status: 503 });
+  }
+
+  try {
+    const client = new MercadoPagoConfig({ accessToken });
     const payment = new Payment(client);
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL!;

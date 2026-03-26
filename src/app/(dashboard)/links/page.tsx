@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import Header from '@/components/dashboard/Header';
 import PaymentLinkCard from '@/components/links/PaymentLinkCard';
 import Button from '@/components/ui/Button';
+import Spinner from '@/components/ui/Spinner';
 
 interface PaymentLink {
   _id: string;
@@ -108,7 +109,7 @@ export default function LinksPage() {
         />
       )}
       <Header title="Mis Links de Cobro" />
-      <main className="p-6">
+      <main className="p-4 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <p className="text-sm text-gray-500">{links.length} link{links.length !== 1 ? 's' : ''} creado{links.length !== 1 ? 's' : ''}</p>
           <Link href="/links/new">
@@ -117,7 +118,7 @@ export default function LinksPage() {
         </div>
 
         {loading ? (
-          <div className="text-center py-16 text-gray-400">Cargando...</div>
+          <div className="flex justify-center py-16"><Spinner /></div>
         ) : links.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-4xl mb-3">🔗</p>

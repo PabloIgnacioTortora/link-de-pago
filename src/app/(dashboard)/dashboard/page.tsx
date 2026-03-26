@@ -69,7 +69,7 @@ export default async function DashboardPage() {
       <Suspense fallback={null}>
         <SubscriptionSuccess />
       </Suspense>
-      <main className="p-6">
+      <main className="p-4 md:p-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatsCard
             title="Ingresos totales"
@@ -143,6 +143,7 @@ export default async function DashboardPage() {
               </Link>
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-xs">
                 <tr>
@@ -173,6 +174,7 @@ export default async function DashboardPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </main>

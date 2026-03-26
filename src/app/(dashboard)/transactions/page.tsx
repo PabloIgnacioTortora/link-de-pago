@@ -5,6 +5,7 @@ import Header from '@/components/dashboard/Header';
 import Badge from '@/components/ui/Badge';
 import { formatCurrency } from '@/lib/utils/formatCurrency';
 import type { TransactionStatus } from '@/models/Transaction';
+import Spinner from '@/components/ui/Spinner';
 
 interface Transaction {
   _id: string;
@@ -33,9 +34,9 @@ export default function TransactionsPage() {
   return (
     <div className="flex-1 overflow-auto">
       <Header title="Transacciones" />
-      <main className="p-6">
-        <div className="mb-4 flex items-center justify-between">
-        <div className="flex gap-2">
+      <main className="p-4 md:p-6">
+        <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
           {['', 'approved', 'pending', 'rejected'].map((s) => (
             <button
               key={s}
@@ -62,13 +63,14 @@ export default function TransactionsPage() {
 
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           {loading ? (
-            <div className="py-16 text-center text-gray-400">Cargando...</div>
+            <div className="flex justify-center py-16"><Spinner /></div>
           ) : transactions.length === 0 ? (
             <div className="py-16 text-center text-gray-400">
               <p className="text-4xl mb-2">💳</p>
               <p>No hay transacciones {status ? 'con ese filtro' : 'aún'}.</p>
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-xs">
                 <tr>
@@ -93,6 +95,7 @@ export default function TransactionsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </main>

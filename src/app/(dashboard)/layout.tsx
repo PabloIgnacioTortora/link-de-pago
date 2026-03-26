@@ -1,4 +1,5 @@
 import Sidebar from '@/components/dashboard/Sidebar';
+import SidebarProvider from '@/components/dashboard/SidebarProvider';
 import UpgradeBanner from '@/components/dashboard/UpgradeBanner';
 import { auth } from '@/auth';
 
@@ -7,12 +8,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const isPro = session?.user?.plan === 'pro';
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {!isPro && <UpgradeBanner />}
-        {children}
+    <SidebarProvider>
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          {!isPro && <UpgradeBanner />}
+          {children}
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
 import { signOut } from 'next-auth/react';
+import { useSidebar } from './SidebarProvider';
 
 const navItems = [
   {
@@ -49,13 +50,24 @@ const navItems = [
   },
 ];
 
-export default function Sidebar() {
+function SidebarContent({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col min-h-screen">
-      <div className="px-6 py-5 border-b border-gray-200">
+    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-full min-h-screen">
+      <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
         <span className="text-xl font-bold text-indigo-600">LinkPago</span>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="md:hidden p-1 rounded text-gray-400 hover:text-gray-600 transition-colors"
+            aria-label="Cerrar menú"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">
@@ -65,6 +77,7 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={clsx(
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                 active ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'
@@ -92,5 +105,28 @@ export default function Sidebar() {
         </button>
       </div>
     </aside>
+  );
+}
+
+export default function Sidebar() {
+  const { isOpen, close } = useSidebar();
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <div className="hidden md:flex">
+        <SidebarContent />
+      </div>
+
+      {/* Mobile overlay drawer */}
+      {isOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div className="absolute inset-0 bg-black/50" onClick={close} />
+          <div className="relative z-50 flex h-full">
+            <SidebarContent onClose={close} />
+          </div>
+        </div>
+      )}
+    </>
   );
 }

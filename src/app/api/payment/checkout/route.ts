@@ -3,7 +3,7 @@ import connectDB from '@/lib/db/mongoose';
 import PaymentLink from '@/models/PaymentLink';
 import User from '@/models/User';
 import { createPreference } from '@/lib/mercadopago/client';
-import { decrypt } from '@/lib/crypto';
+import { getValidAccessToken } from '@/lib/mp/oauth';
 import { isRateLimited } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
@@ -33,8 +33,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Este link no está disponible por ahora.' }, { status: 503 });
   }
 
+  let accessToken: string;
   try {
-    const accessToken = decrypt(merchant.mpAccessToken);
+    accessToken = await getValidAccessToken(String(link.merchantId));
+  } catch {
+    return NextResponse.json({ error: 'Este link no está disponible por ahora.' }, { status: 503 });
+  }
+
+  try {
     const preference = await createPreference({
       title: link.title,
       amount: link.amount,

@@ -10,8 +10,13 @@ export interface IUser extends Document {
   businessName?: string;
   brandColor: string;
   brandLogo?: string;
+  // Legacy: token pegado a mano (se mantiene para retrocompatibilidad)
   mpAccessToken?: string;
   mpPublicKey?: string;
+  // OAuth Connect: tokens obtenidos via MP Connect (reemplazan al legacy)
+  mpRefreshToken?: string;       // Encrypted. Usado para renovar el access_token.
+  mpTokenExpiresAt?: Date;       // Cuándo vence el access_token actual (180 días).
+  mpUserId?: string;             // user_id numérico devuelto por MP (no sensible).
   transferCbu?: string;
   transferAlias?: string;
   transferHolder?: string;
@@ -35,6 +40,9 @@ const UserSchema = new Schema<IUser>(
     brandLogo: { type: String },
     mpAccessToken: { type: String },
     mpPublicKey: { type: String },
+    mpRefreshToken: { type: String },
+    mpTokenExpiresAt: { type: Date },
+    mpUserId: { type: String },
     transferCbu: { type: String },
     transferAlias: { type: String },
     transferHolder: { type: String },

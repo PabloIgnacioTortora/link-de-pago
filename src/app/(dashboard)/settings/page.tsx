@@ -2,116 +2,25 @@
 
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/dashboard/Header';
-import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { toast } from 'sonner';
 
-const STEPS = [
-  {
-    n: '1',
-    title: 'Entrá a MercadoPago Developers',
-    desc: 'Abrí una nueva pestaña y andá a mercadopago.com.ar/developers',
-    href: 'https://www.mercadopago.com.ar/developers',
-    cta: 'Ir a Developers →',
-  },
-  {
-    n: '2',
-    title: 'Ingresá con tu cuenta',
-    desc: 'Usá el mismo usuario y contraseña de tu cuenta de MercadoPago.',
-  },
-  {
-    n: '3',
-    title: 'Creá una aplicación',
-    desc: 'Hacé clic en "Crear aplicación". Ponele cualquier nombre (ej: "Mi tienda") y seleccioná "Pagos online".',
-  },
-  {
-    n: '4',
-    title: 'Copiá tu Access Token de producción',
-    desc: 'Dentro de la app, andá a "Credenciales de producción". Copiá el texto que empieza con APP_USR-...',
-  },
-  {
-    n: '5',
-    title: 'Pegalo acá abajo',
-    desc: 'Pegá el token en el campo de abajo y guardá los cambios.',
-  },
-];
-
-function MpTokenHelp() {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="rounded-xl border border-blue-100 bg-blue-50 overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-controls="mp-token-help-content"
-        className="w-full flex items-center justify-between px-4 py-3 text-left"
-      >
-        <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-sm font-medium text-blue-700">¿Cómo obtengo mi Access Token?</span>
-        </div>
-        <svg
-          className={`w-4 h-4 text-blue-400 transition-transform ${open ? 'rotate-180' : ''}`}
-          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-          aria-hidden="true"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {open && (
-        <div id="mp-token-help-content" className="px-4 pb-4 space-y-3 border-t border-blue-100">
-          <p className="text-xs text-blue-600 pt-3">Seguí estos pasos simples — te lleva menos de 5 minutos:</p>
-          <ol className="space-y-3">
-            {STEPS.map((step) => (
-              <li key={step.n} className="flex gap-3">
-                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center mt-0.5">
-                  {step.n}
-                </span>
-                <div>
-                  <p className="text-sm font-medium text-gray-800">{step.title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{step.desc}</p>
-                  {step.href && (
-                    <a
-                      href={step.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 font-medium hover:underline mt-1 inline-block"
-                    >
-                      {step.cta}
-                    </a>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ol>
-          <div className="bg-yellow-50 border border-yellow-100 rounded-lg px-3 py-2 mt-2">
-            <p className="text-xs text-yellow-700">
-              <strong>Importante:</strong> Usá el token de <strong>producción</strong> (empieza con <code className="font-mono">APP_USR-</code>), no el de prueba.
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function SettingsPage() {
   const { data: session, status, update } = useSession();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [loading, setLoading] = useState(false);
-  const [hasSavedToken, setHasSavedToken] = useState(false);
-  const [hasSavedPublicKey, setHasSavedPublicKey] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [hasMpOAuth, setHasMpOAuth] = useState(false);
+  const [mpTokenExpiresAt, setMpTokenExpiresAt] = useState<string | null>(null);
+
   const [form, setForm] = useState({
     businessName: '',
     brandColor: '#6366f1',
-    mpAccessToken: '',
-    mpPublicKey: '',
     transferCbu: '',
     transferAlias: '',
     transferHolder: '',
@@ -123,6 +32,27 @@ export default function SettingsPage() {
     transferAlias: '',
     transferHolder: '',
   });
+
+  // Leer query param ?mp= del callback OAuth y mostrar toast
+  useEffect(() => {
+    const mp = searchParams.get('mp');
+    if (!mp) return;
+
+    if (mp === 'connected') {
+      toast.success('¡MercadoPago conectado correctamente!');
+      setHasMpOAuth(true);
+    } else if (mp === 'cancelled') {
+      toast.info('Cancelaste la conexión con MercadoPago.');
+    } else if (mp === 'error') {
+      toast.error('Hubo un error al conectar con MercadoPago. Intentá de nuevo.');
+    }
+
+    // Limpiar el query param de la URL sin recargar
+    const url = new URL(window.location.href);
+    url.searchParams.delete('mp');
+    url.searchParams.delete('reason');
+    router.replace(url.pathname + (url.search || ''));
+  }, [searchParams, router]);
 
   useEffect(() => {
     if (status !== 'authenticated') return;
@@ -136,16 +66,14 @@ export default function SettingsPage() {
           transferAlias: data.transferAlias ?? '',
           transferHolder: data.transferHolder ?? '',
         };
-        setForm((f) => ({ ...f, ...loaded }));
+        setForm(loaded);
         setSavedForm(loaded);
-        setHasSavedToken(!!data.hasMpToken);
-        setHasSavedPublicKey(!!data.hasMpPublicKey);
+        setHasMpOAuth(!!data.hasMpOAuth);
+        setMpTokenExpiresAt(data.mpTokenExpiresAt ?? null);
       });
   }, [status]);
 
   const isDirty =
-    form.mpAccessToken !== '' ||
-    form.mpPublicKey !== '' ||
     form.businessName !== savedForm.businessName ||
     form.brandColor !== savedForm.brandColor ||
     form.transferCbu !== savedForm.transferCbu ||
@@ -162,23 +90,21 @@ export default function SettingsPage() {
     setLoading(false);
     if (res.ok) {
       toast.success('Cambios guardados correctamente.');
-      const newSaved = {
-        businessName: form.businessName,
-        brandColor: form.brandColor,
-        transferCbu: form.transferCbu,
-        transferAlias: form.transferAlias,
-        transferHolder: form.transferHolder,
-      };
-      setSavedForm(newSaved);
-      if (form.mpAccessToken) {
-        setHasSavedToken(true);
-        setForm((f) => ({ ...f, mpAccessToken: '' }));
-      }
-      if (form.mpPublicKey) {
-        setHasSavedPublicKey(true);
-        setForm((f) => ({ ...f, mpPublicKey: '' }));
-      }
+      setSavedForm({ ...form });
       await update();
+    }
+  };
+
+  const handleDisconnect = async () => {
+    setDisconnecting(true);
+    const res = await fetch('/api/mp/disconnect', { method: 'POST' });
+    setDisconnecting(false);
+    if (res.ok) {
+      setHasMpOAuth(false);
+      setMpTokenExpiresAt(null);
+      toast.success('MercadoPago desconectado.');
+    } else {
+      toast.error('No se pudo desconectar. Intentá de nuevo.');
     }
   };
 
@@ -186,7 +112,7 @@ export default function SettingsPage() {
     return (
       <div className="flex-1 overflow-auto">
         <Header title="Configuración" />
-        <main className="p-6 max-w-lg">
+        <main className="p-4 md:p-6 max-w-lg">
           <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse space-y-4">
             <div className="h-4 bg-gray-100 rounded w-1/3" />
             <div className="h-10 bg-gray-100 rounded" />
@@ -202,21 +128,24 @@ export default function SettingsPage() {
   return (
     <div className="flex-1 overflow-auto">
       <Header title="Configuración" />
-      <main className="p-6 max-w-lg space-y-4">
-        {!hasSavedToken && (
+      <main className="p-4 md:p-6 max-w-lg space-y-4">
+
+        {/* Banner de advertencia si MP no está conectado */}
+        {!hasMpOAuth && (
           <div role="alert" className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-4 flex gap-3">
             <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
             <div>
-              <p className="text-sm font-semibold text-amber-800">Configurá tu cuenta de MercadoPago</p>
+              <p className="text-sm font-semibold text-amber-800">Conectá tu cuenta de MercadoPago</p>
               <p className="text-xs text-amber-700 mt-0.5">
-                Tus links de cobro no funcionarán hasta que conectes tu cuenta. Completá el Access Token más abajo.
+                Tus links de cobro no funcionarán hasta que conectes tu cuenta de MercadoPago.
               </p>
             </div>
           </div>
         )}
 
+        {/* Sección: Perfil del negocio */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
           <h2 className="font-semibold text-gray-800">Perfil del negocio</h2>
 
@@ -252,10 +181,7 @@ export default function SettingsPage() {
                 className="h-10 w-16 rounded border border-gray-300 cursor-pointer disabled:cursor-not-allowed"
               />
               <span className="text-sm text-gray-500">{form.brandColor}</span>
-              <div
-                className="h-8 w-8 rounded-full border border-gray-200"
-                style={{ backgroundColor: form.brandColor }}
-              />
+              <div className="h-8 w-8 rounded-full border border-gray-200" style={{ backgroundColor: form.brandColor }} />
             </div>
           </div>
 
@@ -266,123 +192,115 @@ export default function SettingsPage() {
             </div>
           )}
 
-          <div className="border-t border-gray-100 pt-4 space-y-4">
-            <div>
-              <h3 className="font-medium text-gray-800 mb-0.5">Conectar mi cuenta de MercadoPago</h3>
-              <p className="text-xs text-gray-500">
-                Conectá tu cuenta para que los pagos ingresen directamente a tu billetera de MercadoPago.
-              </p>
-            </div>
+          <Button loading={loading} disabled={!isDirty} onClick={handleSave}>Guardar cambios</Button>
+        </div>
 
-            <MpTokenHelp />
-
-            <div className="flex flex-col gap-1">
-              <label htmlFor="mpAccessToken" className="text-sm font-medium text-gray-700">
-                Tu Access Token de producción
-              </label>
-              <div className="relative">
-                <input
-                  id="mpAccessToken"
-                  type="password"
-                  value={form.mpAccessToken}
-                  onChange={(e) => setForm((f) => ({ ...f, mpAccessToken: e.target.value }))}
-                  placeholder={hasSavedToken ? 'APP_USR-••••••••••••••••••••••••' : 'APP_USR-0000000000000000-000000-...'}
-                  className={`block w-full rounded-lg border px-3 py-2 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono ${hasSavedToken && !form.mpAccessToken ? 'border-green-300 bg-green-50' : 'border-gray-300'}`}
-                />
-                {hasSavedToken && !form.mpAccessToken && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  </span>
-                )}
-              </div>
-              {hasSavedToken && !form.mpAccessToken
-                ? <p className="text-xs text-green-600 mt-1" role="status"><span aria-hidden="true">✓</span> Token configurado. Dejá el campo vacío para mantener el actual.</p>
-                : form.mpAccessToken
-                  ? <p className="text-xs text-indigo-600 mt-1">Token listo para guardar.</p>
-                  : null
-              }
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label htmlFor="mpPublicKey" className="text-sm font-medium text-gray-700">
-                Tu Clave Pública de producción
-              </label>
-              <div className="relative">
-                <input
-                  id="mpPublicKey"
-                  type="text"
-                  value={form.mpPublicKey}
-                  onChange={(e) => setForm((f) => ({ ...f, mpPublicKey: e.target.value }))}
-                  placeholder={hasSavedPublicKey ? 'APP_USR-••••••••••••••••••••••••' : 'APP_USR-00000000-0000-0000-0000-000000000000'}
-                  className={`block w-full rounded-lg border px-3 py-2 pr-10 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono ${hasSavedPublicKey && !form.mpPublicKey ? 'border-green-300 bg-green-50' : 'border-gray-300'}`}
-                />
-                {hasSavedPublicKey && !form.mpPublicKey && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  </span>
-                )}
-              </div>
-              {hasSavedPublicKey && !form.mpPublicKey
-                ? <p className="text-xs text-green-600 mt-1" role="status"><span aria-hidden="true">✓</span> Clave pública configurada. Los pagos con tarjeta están habilitados.</p>
-                : !hasSavedPublicKey && hasSavedToken && !form.mpPublicKey
-                  ? <p className="text-xs text-amber-600 mt-1">⚠ Ingresá tu clave pública para habilitar pagos con tarjeta.</p>
-                  : form.mpPublicKey
-                    ? <p className="text-xs text-indigo-600 mt-1">Clave pública lista para guardar.</p>
-                    : null
-              }
-            </div>
+        {/* Sección: MercadoPago Connect */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+          <div>
+            <h2 className="font-semibold text-gray-800">MercadoPago</h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Conectá tu cuenta para recibir los pagos directamente en tu billetera.
+            </p>
           </div>
 
-          <div className="border-t border-gray-100 pt-4 space-y-4">
-            <div>
-              <h3 className="font-medium text-gray-800 mb-0.5">Transferencia bancaria</h3>
-              <p className="text-xs text-gray-500">
-                Opcional. Si completás estos datos, los pagadores podrán elegir pagar por transferencia bancaria.
-              </p>
+          {hasMpOAuth ? (
+            /* Estado: conectado */
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                  <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-green-800">Cuenta conectada</p>
+                  {mpTokenExpiresAt && (
+                    <p className="text-xs text-green-600 mt-0.5">
+                      Token válido hasta {new Date(mpTokenExpiresAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <a
+                  href="/api/mp/connect"
+                  className="flex-1 text-center px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  Reconectar cuenta
+                </a>
+                <button
+                  onClick={handleDisconnect}
+                  disabled={disconnecting}
+                  className="flex-1 px-4 py-2 rounded-lg border border-red-200 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60"
+                >
+                  {disconnecting ? 'Desconectando...' : 'Desconectar'}
+                </button>
+              </div>
             </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="transferHolder" className="text-sm font-medium text-gray-700">Titular de la cuenta</label>
-              <input
-                id="transferHolder"
-                type="text"
-                value={form.transferHolder}
-                onChange={(e) => setForm((f) => ({ ...f, transferHolder: e.target.value }))}
-                placeholder="Ej: Juan García"
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="transferCbu" className="text-sm font-medium text-gray-700">CBU / CVU</label>
-              <input
-                id="transferCbu"
-                type="text"
-                inputMode="numeric"
-                value={form.transferCbu}
-                onChange={(e) => setForm((f) => ({ ...f, transferCbu: e.target.value }))}
-                placeholder="0000000000000000000000"
-                maxLength={22}
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 font-mono placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="transferAlias" className="text-sm font-medium text-gray-700">Alias</label>
-              <input
-                id="transferAlias"
-                type="text"
-                value={form.transferAlias}
-                onChange={(e) => setForm((f) => ({ ...f, transferAlias: e.target.value }))}
-                placeholder="Ej: minegocio.mp"
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 font-mono placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
+          ) : (
+            /* Estado: no conectado */
+            <a
+              href="/api/mp/connect"
+              className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-[#009ee3] hover:bg-[#008fd1] text-white font-semibold text-sm transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              Conectar con MercadoPago
+            </a>
+          )}
+        </div>
+
+        {/* Sección: Transferencia bancaria */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+          <div>
+            <h2 className="font-semibold text-gray-800">Transferencia bancaria</h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Opcional. Si completás estos datos, los pagadores podrán elegir pagar por transferencia.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label htmlFor="transferHolder" className="text-sm font-medium text-gray-700">Titular de la cuenta</label>
+            <input
+              id="transferHolder"
+              type="text"
+              value={form.transferHolder}
+              onChange={(e) => setForm((f) => ({ ...f, transferHolder: e.target.value }))}
+              placeholder="Ej: Juan García"
+              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="transferCbu" className="text-sm font-medium text-gray-700">CBU / CVU</label>
+            <input
+              id="transferCbu"
+              type="text"
+              inputMode="numeric"
+              value={form.transferCbu}
+              onChange={(e) => setForm((f) => ({ ...f, transferCbu: e.target.value }))}
+              placeholder="0000000000000000000000"
+              maxLength={22}
+              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 font-mono placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="transferAlias" className="text-sm font-medium text-gray-700">Alias</label>
+            <input
+              id="transferAlias"
+              type="text"
+              value={form.transferAlias}
+              onChange={(e) => setForm((f) => ({ ...f, transferAlias: e.target.value }))}
+              placeholder="Ej: minegocio.mp"
+              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 font-mono placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
           </div>
 
           <Button loading={loading} disabled={!isDirty} onClick={handleSave}>Guardar cambios</Button>
         </div>
+
       </main>
     </div>
   );
