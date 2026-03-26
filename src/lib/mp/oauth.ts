@@ -36,7 +36,6 @@ export function getAuthorizationUrl(userId: string): { url: string; state: strin
   const params = new URLSearchParams({
     client_id: clientId,
     response_type: 'code',
-    platform_id: 'mp',
     redirect_uri: redirectUri,
     state,
   });
